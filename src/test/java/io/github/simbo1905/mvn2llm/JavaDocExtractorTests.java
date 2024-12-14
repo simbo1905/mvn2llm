@@ -9,7 +9,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class Mvn2LlmTests {
+class JavaDocExtractorTests {
 
   @Test
   void shouldExtractSimpleJavaDoc() {
@@ -155,7 +155,7 @@ class Mvn2LlmTests {
   }
 
   private List<JavaDocInfo> extractDocs(String source) {
-    return Mvn2Llm.extractJavaDoc(
+    return JavaDocExtractor.extractJavaDoc(
         new BufferedReader(new StringReader(source)),
         "TestClass"
     ).toList();

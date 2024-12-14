@@ -6,8 +6,8 @@ package io.github.simbo1905.mvn2llm;
  * A modern Java tool that extracts JavaDoc documentation from Maven source JARs
  * and formats it for Large Language Model (LLM) processing.
  *
- * Usage: java io.github.simbo1905.mvn2llm.Mvn2Llm [-v] groupId:artifactId:version
- * Example: java io.github.simbo1905.mvn2llm.Mvn2Llm -v com.google.guava:guava:32.1.3
+ * Usage: java io.github.simbo1905.mvn2llm.JavaDocExtractor [-v] groupId:artifactId:version
+ * Example: java io.github.simbo1905.mvn2llm.JavaDocExtractor -v com.google.guava:guava:32.1.3
  */
 
 import java.io.BufferedReader;
@@ -35,8 +35,20 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 
-public class Mvn2Llm {
-  private static final Logger LOGGER = Logger.getLogger(Mvn2Llm.class.getName());
+// FIXME:
+
+///*
+//Class: net.luminis.quic.impl.QuicClientConnectionImpl
+//JavaDoc:
+//    /**
+//     * Set up the connection with the server.
+//     */
+//@Override
+// */
+// TODO markdown
+// TODO andriod verse java of `com.google.guava:guava:32.1.3`
+public class JavaDocExtractor {
+  private static final Logger LOGGER = Logger.getLogger(JavaDocExtractor.class.getName());
   public static final String HTTPS_REPO_1_MAVEN_ORG_MAVEN_2 = "https://repo1.maven.org/maven2";
 
   record MavenCoordinate(String groupId, String artifactId, String version) {
