@@ -7,7 +7,11 @@
     <groupId>io.github.simbo1905</groupId>
     <artifactId>mvn2llm</artifactId>
     <version>0.9-SNAPSHOT</version>
-
+    <description>
+        mvn2llm downloads and extracts JavaDoc documentation from Maven source JARs for LLM processing.
+        This enables AI assistants to provide accurate, version-specific API guidance and code suggestions
+        based on the official documentation of any Maven-published Java library.
+    </description>
     <properties>
         <maven.compiler.source>23</maven.compiler.source>
         <maven.compiler.target>23</maven.compiler.target>
