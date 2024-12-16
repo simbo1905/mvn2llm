@@ -24,7 +24,7 @@ class JavaDocExtractorTests {
         .hasSize(1)
         .first()
         .satisfies(doc -> {
-          assertThat(doc.className()).isEqualTo("TestClass");
+          assertThat(doc.fileName()).isEqualTo("TestClass");
           assertThat(doc.methodName()).isEqualTo("public void simpleMethod() {}");
           assertThat(doc.documentation()).isEqualTo("/** Simple method description */");
         });

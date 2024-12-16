@@ -1,4 +1,13 @@
-# Maven Source JAR Documentation Extractor
+# mvn2llm :: Maven Download Source JAR And JavaDoc Extraction for LLM Processing
+
+```text
+                                         
+ _____ _____ _____ ___ __    __    _____ 
+|     |  |  |   | |_  |  |  |  |  |     |
+| | | |  |  | | | |  _|  |__|  |__| | | |
+|_|_|_|\___/|_|___|___|_____|_____|_|_|_|
+                                         
+```
 
 A modern Java 23 utility that downloads source JARs from Maven Central and extracts JavaDoc documentation from them.
 
@@ -7,7 +16,9 @@ A modern Java 23 utility that downloads source JARs from Maven Central and extra
 - Downloads source JARs directly from Maven Central based on Maven coordinates e.g. `tech.kwik:kwik:0.9.1`
 - Extracts JavaDoc comments from all Java source files adn prints them to stdout in a structured format.
 - Does not aim to be totally perfect as LLMs can handle some additional lines below the JavaDoc to avoid missing
-  things.a
+  things.
+- It does not have a 12M binary like Roaster which is a full Java parser that has an implementation of the eclipse jdt
+  in the main jar.
 
 ## Requirements
 
@@ -20,10 +31,13 @@ A modern Java 23 utility that downloads source JARs from Maven Central and extra
 java -jar mvn2llm-0.9-SNAPSHOT.jar <groupId>:<artifactId>:<version>
 ```
 
-### Example
+### Examples
 
 ```bash
+# Normal looking artifact numbering
 java -jar target/mvn2llm-0.9-SNAPSHOT.jar tech.kwik:kwik:0.9.1
+# Artifact numbering that covers android
+java -jar target/mvn2llm-0.9-SNAPSHOT.jar com.google.guava:guava:32.1.3-android
 ```
 
 ### Output Format
@@ -31,7 +45,7 @@ java -jar target/mvn2llm-0.9-SNAPSHOT.jar tech.kwik:kwik:0.9.1
 The tool outputs documentation in the following format:
 
 ```
-Class: net.luminis.quic.impl.QuicClientConnectionImpl
+File: net.luminis.quic.impl.QuicClientConnectionImpl
 JavaDoc:
 /**
  * Creates and maintains a QUIC connection with a QUIC server.

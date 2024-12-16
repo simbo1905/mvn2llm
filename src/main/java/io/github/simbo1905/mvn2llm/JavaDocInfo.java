@@ -2,7 +2,7 @@ package io.github.simbo1905.mvn2llm;
 
 import java.util.List;
 
-record JavaDocInfo(String className, String methodName, String documentation) {
+record JavaDocInfo(String fileName, String methodName, String documentation) {
   JavaDocInfo(String className, List<String> extracted) {
     this(className,
         extracted.getLast(),
@@ -12,10 +12,10 @@ record JavaDocInfo(String className, String methodName, String documentation) {
   @Override
   public String toString() {
     return """
-        Class: %s
+        File: %s
         JavaDoc:
         %s
         %s
-        """.formatted(className, documentation, methodName);
+        """.formatted(fileName, documentation, methodName);
   }
 }

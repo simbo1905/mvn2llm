@@ -35,41 +35,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 
-// FIXME:
-
-///*
-//Class: net.luminis.quic.impl.QuicClientConnectionImpl
-//JavaDoc:
-//    /**
-//     * Set up the connection with the server.
-//     */
-//@Override
-// */
-// TODO markdown
-// TODO andriod verse java of `com.google.guava:guava:32.1.3`
 public class JavaDocExtractor {
   private static final Logger LOGGER = Logger.getLogger(JavaDocExtractor.class.getName());
   public static final String HTTPS_REPO_1_MAVEN_ORG_MAVEN_2 = "https://repo1.maven.org/maven2";
-
-  record MavenCoordinate(String groupId, String artifactId, String version) {
-    static MavenCoordinate parse(String input) {
-      final var parts = input.split(":");
-      if (parts.length != 3) {
-        throw new IllegalArgumentException("Invalid coordinate format. Expected: groupId:artifactId:version");
-      }
-      return new MavenCoordinate(parts[0], parts[1], parts[2]);
-    }
-
-    String toPath() {
-      return "%s/%s/%s/%s-%s-sources.jar".formatted(
-          groupId.replace('.', '/'),
-          artifactId,
-          version,
-          artifactId,
-          version
-      );
-    }
-  }
 
   private static void configureLogging(Level level) {
     ConsoleHandler handler = new ConsoleHandler();
@@ -112,7 +80,7 @@ public class JavaDocExtractor {
 
     LOGGER.fine("Downloading source JAR from: %s".formatted(url));
 
-    try (var client = HttpClient.newHttpClient()) {
+    try (final var client = HttpClient.newHttpClient()) {
       final var request = HttpRequest.newBuilder()
           .uri(URI.create(url))
           .GET()
@@ -124,7 +92,7 @@ public class JavaDocExtractor {
       try {
         final var response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
         if (response.statusCode() == 404) {
-          System.out.printf("Could not resolve Maven coordinates. URL not found: %s%n", url);
+          LOGGER.severe("Could not resolve Maven coordinates. URL not found: " + url);
           throw new IOException("Source JAR not found");
         } else if (response.statusCode() != 200) {
           throw new IOException("Failed to download JAR. Status code: " + response.statusCode());
@@ -139,6 +107,14 @@ public class JavaDocExtractor {
         Files.deleteIfExists(tempFile);
         throw new IOException("Failed to download source JAR", e);
       }
+      // as we have managed to resolve the url we will print it out at the top of the output
+      System.out.println("""
+           _____ _____ _____ ___ __    __     _____
+          |     |  |  |   | |_  |  |  |  |   |     |
+          | | | |  |  | | | |  _|  |__|  |__ | | | |
+          |_|_|_|\\___/|_|___|___|_____|______|_|_|_|
+          Downloaded:
+          """ + url);
       return tempFile;
     }
   }
@@ -165,13 +141,10 @@ public class JavaDocExtractor {
 
   private static Stream<JavaDocInfo> extractJavaDocFromEntry(JarFile jar, ZipEntry entry) {
     try (final var reader = new BufferedReader(new InputStreamReader(jar.getInputStream(entry)))) {
-      final var className = entry.getName()
-          .replace('/', '.')
-          .replace(".java", "");
 
-      LOGGER.fine("Extracting JavaDoc from class: %s".formatted(className));
+      LOGGER.fine("Extracting JavaDoc from: %s".formatted(entry.getName()));
 
-      return extractJavaDoc(reader, className);
+      return extractJavaDoc(reader, entry.getName());
     } catch (IOException e) {
       LOGGER.warning("Failed to process file %s: %s".formatted(
           entry.getName(), e.getMessage()));
@@ -179,9 +152,9 @@ public class JavaDocExtractor {
     }
   }
 
-  static Stream<JavaDocInfo> extractJavaDoc(BufferedReader reader, String className) {
+  static Stream<JavaDocInfo> extractJavaDoc(BufferedReader reader, String fileName) {
     return reader.lines()
-        .collect(new CommentBlockCollector(className))
+        .collect(new CommentBlockCollector(fileName))
         .stream();
   }
 
@@ -189,20 +162,23 @@ public class JavaDocExtractor {
 
 record Arguments(boolean verbose, boolean help, Level logLevel, String coordinate) {
   private static final String HELP_TEXT = """
-      mvn2llm - Maven Documentation Extractor for LLM Processing
+      mvn2llm - Maven Download Source JAR And JavaDoc Extraction for LLM Processing
       
       Usage: java -jar mvn2llm.jar [-v] [-l LEVEL] groupId:artifactId:version
       
       Options:
-        -h         Show this help message
-        -v         Enable verbose logging (shorthand for -l FINE)
-        -l LEVEL   Set log level (OFF, SEVERE, WARNING, INFO, FINE, FINER, FINEST, ALL)
+        -h        Show this help message
+        -v        Enable verbose logging (shorthand for -l FINE)
+        -l LEVEL  Set log level (OFF, SEVERE, WARNING, INFO, FINE, FINER, FINEST, ALL)
                   Default: INFO
       
-      Example:
-        java -jar mvn2llm.jar com.google.guava:guava:32.1.3
-        java -jar mvn2llm.jar -v com.google.guava:guava:32.1.3
-        java -jar mvn2llm.jar -l FINE com.google.guava:guava:32.1.3
+      Examples:
+        # Normal usage
+        java -jar mvn2llm.jar tech.kwik:kwik:0.9.1
+        # Verbose logging
+        java -jar mvn2llm.jar -v com.google.guava:guava:32.1.3-android
+        # Disable logging even on errors
+        java -jar mvn2llm.jar -l OFF com.google.guava:guava:32.1.3-jre
       """;
 
   static class Builder {
@@ -290,10 +266,10 @@ record Arguments(boolean verbose, boolean help, Level logLevel, String coordinat
 
 class CommentBlockCollector implements Collector<String, List<String>, List<JavaDocInfo>> {
 
-  private final String className;
+  private final String fileName;
 
-  public CommentBlockCollector(String className) {
-    this.className = className;
+  public CommentBlockCollector(String fileName) {
+    this.fileName = fileName;
   }
 
   @Override
@@ -344,7 +320,7 @@ class CommentBlockCollector implements Collector<String, List<String>, List<Java
       List<String> tempBlock = new ArrayList<>();
       for (String line : list) {
         if (line.isEmpty()) {
-          final var doc = new JavaDocInfo(className, tempBlock);
+          final var doc = new JavaDocInfo(fileName, tempBlock);
           // End of a block
           result.add(doc);
           tempBlock.clear();
@@ -359,5 +335,25 @@ class CommentBlockCollector implements Collector<String, List<String>, List<Java
   @Override
   public Set<Characteristics> characteristics() {
     return Collections.emptySet();
+  }
+}
+
+record MavenCoordinate(String groupId, String artifactId, String version) {
+  static MavenCoordinate parse(String input) {
+    final var parts = input.split(":");
+    if (parts.length != 3) {
+      throw new IllegalArgumentException("Invalid coordinate format. Expected: groupId:artifactId:version");
+    }
+    return new MavenCoordinate(parts[0], parts[1], parts[2]);
+  }
+
+  String toPath() {
+    return "%s/%s/%s/%s-%s-sources.jar".formatted(
+        groupId.replace('.', '/'),
+        artifactId,
+        version,
+        artifactId,
+        version
+    );
   }
 }
