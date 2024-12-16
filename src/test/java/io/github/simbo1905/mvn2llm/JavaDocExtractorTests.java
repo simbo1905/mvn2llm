@@ -49,11 +49,12 @@ class JavaDocExtractorTests {
         .satisfies(doc -> {
           assertThat(doc.methodName()).isEqualTo("public void multilineMethod() {}");
           assertThat(doc.documentation()).isEqualTo(
-              "/**\n" +
-                  " * This is a multiline\n" +
-                  " * documentation block\n" +
-                  " * with several lines\n" +
-                  " */");
+              """
+                  /**
+                   * This is a multiline
+                   * documentation block
+                   * with several lines
+                   */""");
         });
   }
 
@@ -77,10 +78,11 @@ class JavaDocExtractorTests {
         .satisfies(doc -> {
           assertThat(doc.methodName()).isEqualTo("public void spacedMethod() {}");
           assertThat(doc.documentation()).isEqualTo(
-              "/**\n" +
-                  " * Documentation with\n" +
-                  " * blank lines after\n" +
-                  " */");
+              """
+                  /**
+                   * Documentation with
+                   * blank lines after
+                   */""");
         });
   }
 
