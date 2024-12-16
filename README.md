@@ -9,7 +9,8 @@
                                          
 ```
 
-A modern Java 23 utility that downloads source JARs from Maven Central and extracts JavaDoc documentation from them.
+A modern Java 23 command line utility that downloads source JARs from Maven Central and extracts JavaDoc documentation from them.
+It prints output to `stdout` and problems to `stderr`.
 
 ## Features
 
