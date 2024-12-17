@@ -1,21 +1,17 @@
 package io.github.simbo1905.mvn2llm;
 
-import java.util.List;
-
-record JavaDocInfo(String fileName, String methodName, String documentation) {
-  JavaDocInfo(String className, List<String> extracted) {
-    this(className,
-        extracted.getLast(),
-        String.join("\n", extracted.subList(0, extracted.size() - 1)));
-  }
+record JavaDocInfo(String fileName, String documentation, String memberSignature) {
 
   @Override
   public String toString() {
     return """
-        File: %s
-        JavaDoc:
         %s
         %s
-        """.formatted(fileName, documentation, methodName);
+        %s
+        """.formatted(fileName, documentation.trim(), vacuum().trim());
+  }
+
+  public String vacuum() {
+    return memberSignature.replaceAll("\\s+", " ").trim();
   }
 }
