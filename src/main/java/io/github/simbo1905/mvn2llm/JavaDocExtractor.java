@@ -153,8 +153,14 @@ public class JavaDocExtractor {
 record Arguments(boolean verbose, boolean help, Level logLevel, String coordinate) {
   private static boolean isNativeImage() {
     try {
-      Class.forName("org.graalvm.nativeimage.ImageInfo");
-      return true;
+      final Class<?> clazz = Class.forName("org.graalvm.nativeimage.ImageInfo");
+      try {
+        // reflectively invoke the static method inImageRuntimeCode()  on clazz
+        final var obj = clazz.getMethod("inImageRuntimeCode").invoke(null);
+        return (boolean) obj;
+      } catch (Exception e) {
+        return false;
+      }
     } catch (ClassNotFoundException e) {
       return false;
     }
@@ -261,7 +267,7 @@ record Arguments(boolean verbose, boolean help, Level logLevel, String coordinat
   void printHelp() {
     final var isNative = isNativeImage();
     final var executable = isNative ? "mvn2llm" : "java -jar mvn2llm.jar";
-    System.out.println(String.format(HELP_TEXT, executable, executable, executable, executable));
+    System.out.printf(HELP_TEXT + "%n", executable, executable, executable, executable);
   }
 }
 
