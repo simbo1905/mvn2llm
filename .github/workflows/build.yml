@@ -2,9 +2,9 @@ name: Build Native Images
 
 on:
   push:
-    branches: [ main ]
+    branches: [ native ]
   pull_request:
-    branches: [ main ]
+    branches: [ native ]
   release:
     types: [ created ]
 
