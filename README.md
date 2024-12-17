@@ -69,13 +69,22 @@ public class QuicClientConnectionImpl extends QuicConnectionImpl implements Quic
 - Source JARs must be available for the requested artifacts
 - Does not yet support markdown `/// Some Documentation with [MyClass] links` comments yet!
 
-## Native Image Apple M1
+## Native Image
+
+You need to install GraalVM or higher with the native image plugin. On macOS you can:
 
 ```bash
 sdk install java 23.0.1-graal
 export $GRAALVM_HOME=/Users/xxxx/.sdkman/candidates/java/23.0.1-graal
+```
+
+Then you can compile the native image with the following command (which takes a few minutes):
+
+```bash
 ./native-image-compile.sh
 ```
+
+You can pass in an option `--all` to attempt to cross compile.
 
 Timings
 
