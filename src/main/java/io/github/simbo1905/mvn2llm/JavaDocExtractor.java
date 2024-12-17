@@ -151,10 +151,19 @@ public class JavaDocExtractor {
 }
 
 record Arguments(boolean verbose, boolean help, Level logLevel, String coordinate) {
+  private static boolean isNativeImage() {
+    try {
+      Class.forName("org.graalvm.nativeimage.ImageInfo");
+      return true;
+    } catch (ClassNotFoundException e) {
+      return false;
+    }
+  }
+
   private static final String HELP_TEXT = """
       mvn2llm - Maven Download Source JAR And JavaDoc Extraction for LLM Processing
       
-      Usage: java -jar mvn2llm.jar [-v] [-l LEVEL] groupId:artifactId:version
+      Usage: %s [-v] [-l LEVEL] groupId:artifactId:version
       
       Options:
         -h        Show this help message
@@ -164,11 +173,11 @@ record Arguments(boolean verbose, boolean help, Level logLevel, String coordinat
       
       Examples:
         # Normal usage
-        java -jar mvn2llm.jar tech.kwik:kwik:0.9.1
+        %s tech.kwik:kwik:0.9.1
         # Verbose logging
-        java -jar mvn2llm.jar -v com.google.guava:guava:32.1.3-android
+        %s -v com.google.guava:guava:32.1.3-android
         # Disable logging even on errors
-        java -jar mvn2llm.jar -l OFF com.google.guava:guava:32.1.3-jre
+        %s -l OFF com.google.guava:guava:32.1.3-jre
       """;
 
   static class Builder {
@@ -250,7 +259,9 @@ record Arguments(boolean verbose, boolean help, Level logLevel, String coordinat
   }
 
   void printHelp() {
-    System.out.println(HELP_TEXT);
+    final var isNative = isNativeImage();
+    final var executable = isNative ? "mvn2llm" : "java -jar mvn2llm.jar";
+    System.out.println(String.format(HELP_TEXT, executable, executable, executable, executable));
   }
 }
 

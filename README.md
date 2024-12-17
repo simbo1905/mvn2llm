@@ -29,22 +29,22 @@ from them. It prints output to `stdout` and problems to `stderr`.
 You feed in the correct Maven coordinates and it will download the source JAR and extract the JavaDoc:
 
 ```bash
-java -jar mvn2llm-0.9-SNAPSHOT.jar <groupId>:<artifactId>:<version>
+java -jar mvn2llm.jar <groupId>:<artifactId>:<version>
 ```
 
 Examples:
 
 ```bash
 # Normal looking artifact numbering
-java -jar target/mvn2llm-0.9-SNAPSHOT.jar tech.kwik:kwik:0.9.1
+java -jar target/mvn2llm.jar tech.kwik:kwik:0.9.1
 # Artifact numbering that covers android
-java -jar target/mvn2llm-0.9-SNAPSHOT.jar com.google.guava:guava:32.1.3-android
+java -jar target/mvn2llm.jar com.google.guava:guava:32.1.3-android
 ```
 
 The output includes a four line banner. If you are really trying to squeeze those out you can pipe to `tail -n +5`:
 
 ```bash
-java -jar target/mvn2llm-0.9-SNAPSHOT.jar com.google.guava:guava:32.1.3-android | tail -n +5
+java -jar target/mvn2llm.jar com.google.guava:guava:32.1.3-android | tail -n +5
 ```
 
 I would like this to be a cli tool that allows for the unix way of piping and redirecting output rather than add too
@@ -73,8 +73,18 @@ public class QuicClientConnectionImpl extends QuicConnectionImpl implements Quic
 
 ```bash
 sdk install java 23.0.1-graal
-
+export $GRAALVM_HOME=/Users/xxxx/.sdkman/candidates/java/23.0.1-graal
+./native-image-compile.sh
 ```
+
+Timings
+
+```bash
+java -jar target/mvn2llm.jar tech.kwik:kwik:0.9.1  2.26s user 0.28s system 158% cpu 1.602 total
+./mvn2llm tech.kwik:kwik:0.9.1  0.04s user 0.03s system 24% cpu 0.301 total
+```
+
+The native image is about 5.3x faster (1.602s vs 0.301s) than the JVM version.
 
 ## License
 
