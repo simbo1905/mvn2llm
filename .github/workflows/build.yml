@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    name: Build on ${{ matrix.os }}
+    name: "Build on {{ matrix.os }}"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -47,8 +47,8 @@ jobs:
       - name: Upload Binary
         uses: actions/upload-artifact@v4
         with:
-          name: mvn2llm-${{ runner.os }}
-          path: ${{ matrix.output_name }}
+          name: "mvn2llm-{{ runner.os }}"
+          path: "{{ matrix.output_name }}"
           if-no-files-found: error
 
   create-release:
@@ -65,7 +65,7 @@ jobs:
 
       - name: Upload Release Assets
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: "{{ secrets.GITHUB_TOKEN }}"
         run: |
           for artifact in mvn2llm-*; do
             gh release upload ${{ github.event.release.tag_name }} $artifact/* --clobber
