@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Function;
 
 import static io.github.simbo1905.mvn2llm.LinePushStateMachine.endOfMemberSignature;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -165,58 +164,6 @@ class JavaDocExtractorTests {
     return stateMachine.results;
   }
 
-  /**
-   * This is a test case of what complex looks like!
-   */
-  @SuppressWarnings(value = {
-      "one",
-      "two"
-  }
-  )
-  @Deprecated(since
-      = "Use something else")
-  public
-  static
-  class AnnotatedClass<T>
-      implements Function<
-      T,
-      List<String
-          >
-      > {
-    /**
-     * This is a field
-     */
-    @SuppressWarnings({
-        "unused",
-        "unchecked"
-    }
-    )
-    String field;
-
-
-    @Override
-    public List<String> apply(T t) {
-      return List.of();
-    }
-
-    /**
-     * This is a method
-     */
-    @SuppressWarnings({
-        "unused",
-        "unchecked"
-    }
-    )
-    public
-    static <T
-        , R>
-    List<R> doIt
-    (T t) {
-      // stuff
-      return List.of();
-    }
-  }
-
   @Test
   void testEndOfMemberSignatureWithAnnotations() {
     // test field with new lines for semicolon shortcut
@@ -354,12 +301,8 @@ class JavaDocExtractorTests {
     var docs = extractDocs(source);
 
     assertThat(docs).hasSize(3);
-    docs.forEach(doc -> {
-      assertThat(doc.documentation().trim()).startsWith("/**");
-    });
-    docs.forEach(doc -> {
-      assertThat(doc.documentation().trim()).endsWith("*/");
-    });
+    docs.forEach(doc -> assertThat(doc.documentation().trim()).startsWith("/**"));
+    docs.forEach(doc -> assertThat(doc.documentation().trim()).endsWith("*/"));
     assertThat(docs.getFirst().vacuum().trim()).isEqualTo(
         """
             @SuppressWarnings(value = { "one", "two" } ) @Deprecated(since = "Use something else") public static class AnnotatedClass<T> implements Function< T, List<String > > {"""
@@ -389,7 +332,6 @@ class JavaDocExtractorTests {
         """.stripIndent();
     final var expected = new JavaDocInfo("TestClass", doc, "package io.github.simbo1905.mvn2llm;");
     final var docs = extractDocs(source);
-    final var first = docs.getFirst();
     assertThat(docs)
         .containsExactly(
             expected
