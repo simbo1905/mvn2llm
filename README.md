@@ -9,18 +9,15 @@
                                          
 ```
 
-A modern Java 23 command line utility that downloads source JARs from Maven Central and extracts JavaDoc documentation
-from them.
-It prints output to `stdout` and problems to `stderr`.
+A modern Java command line utility that downloads source JARs from Maven Central and extracts JavaDoc documentation
+from them. It prints output to `stdout` and problems to `stderr`.
 
 ## Features
 
 - Downloads source JARs directly from Maven Central based on Maven coordinates e.g. `tech.kwik:kwik:0.9.1`
-- Extracts JavaDoc comments from all Java source files adn prints them to stdout in a structured format.
-- Does not aim to be totally perfect as LLMs can handle some additional lines below the JavaDoc to avoid missing
-  things.
-- It does not have a 12M binary like Roaster which is a full Java parser that has an implementation of the eclipse jdt
-  in the main jar.
+- Extracts JavaDoc comments from all Java source files adn prints them to stdout in a simple test file like format.
+- No external dependencies required.
+- Tiny footprint.
 
 ## Requirements
 
@@ -70,9 +67,14 @@ public class QuicClientConnectionImpl extends QuicConnectionImpl implements Quic
 
 - Requires direct access to Maven Central
 - Source JARs must be available for the requested artifacts
-- Does not yet support markdown `/// Some Documentation with [MyClass] links` comments
-- Is currently fooled by annotations on methods it is not stripping them out such as `@Override`
-- Cannot deal with things like google JARs having an `-android` or java version
+- Does not yet support markdown `/// Some Documentation with [MyClass] links` comments yet!
+
+## Native Image Apple M1
+
+```bash
+sdk install java 23.0.1-graal
+
+```
 
 ## License
 
