@@ -20,19 +20,12 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiConsumer;
-import java.util.function.BinaryOperator;
-import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 
 public class JavaDocExtractor {
@@ -62,7 +55,8 @@ public class JavaDocExtractor {
 
       final var sourceJar = downloadSourceJar(mavenCoordinate);
       try {
-        final var docs = extractJavaDocs(sourceJar);
+        final var extractor = new JavaDocExtractor();
+        final var docs = extractor.extractJavaDocs(sourceJar);
         docs.forEach(System.out::println);
       } finally {
         Files.deleteIfExists(sourceJar);
@@ -119,7 +113,7 @@ public class JavaDocExtractor {
     }
   }
 
-  static List<JavaDocInfo> extractJavaDocs(Path jarPath) throws Exception {
+  List<JavaDocInfo> extractJavaDocs(Path jarPath) throws Exception {
     LOGGER.fine("Processing JAR file: %s".formatted(jarPath));
     final var list = new ArrayList<JavaDocInfo>();
     try (final var jarFile = new JarFile(jarPath.toFile())) {
@@ -129,35 +123,31 @@ public class JavaDocExtractor {
         LOGGER.fine("Processing entry: %s".formatted(entry.getName()));
         if (entry.getName().endsWith(".java")) {
           LOGGER.fine("Processing Java file: %s".formatted(entry.getName()));
-          final var all = extractJavaDocFromEntry(jarFile, entry)
+          final var result = extractJavaDocFromEntry(jarFile, entry).stream()
               .map(JavaDocInfo::toString)
               .collect(Collectors.joining("\n\n"));
-          System.out.println(all);
+          System.out.println(result);
         }
       }
     }
     return list;
   }
 
-  private static Stream<JavaDocInfo> extractJavaDocFromEntry(JarFile jar, ZipEntry entry) {
+  private List<JavaDocInfo> extractJavaDocFromEntry(JarFile jar, ZipEntry entry) {
     try (final var reader = new BufferedReader(new InputStreamReader(jar.getInputStream(entry)))) {
-
       LOGGER.fine("Extracting JavaDoc from: %s".formatted(entry.getName()));
 
-      return extractJavaDoc(reader, entry.getName());
+      final LinePushStateMachine stateMachine = new LinePushStateMachine(entry.getName());
+
+      reader.lines()
+          .forEach(stateMachine::apply);
+      return stateMachine.results;
     } catch (IOException e) {
       LOGGER.warning("Failed to process file %s: %s".formatted(
           entry.getName(), e.getMessage()));
-      return Stream.empty();
+      return Collections.emptyList();
     }
   }
-
-  static Stream<JavaDocInfo> extractJavaDoc(BufferedReader reader, String fileName) {
-    return reader.lines()
-        .collect(new CommentBlockCollector(fileName))
-        .stream();
-  }
-
 }
 
 record Arguments(boolean verbose, boolean help, Level logLevel, String coordinate) {
@@ -261,80 +251,6 @@ record Arguments(boolean verbose, boolean help, Level logLevel, String coordinat
 
   void printHelp() {
     System.out.println(HELP_TEXT);
-  }
-}
-
-class CommentBlockCollector implements Collector<String, List<String>, List<JavaDocInfo>> {
-
-  private final String fileName;
-
-  public CommentBlockCollector(String fileName) {
-    this.fileName = fileName;
-  }
-
-  @Override
-  public Supplier<List<String>> supplier() {
-    return ArrayList::new;
-  }
-
-  @Override
-  public BiConsumer<List<String>, String> accumulator() {
-    final var inBlock = new AtomicBoolean(false);
-    final var collectNextLine = new AtomicBoolean(false);
-    return (list, item) -> {
-      String trimmed = item.trim();
-      // Start of a block
-      if (trimmed.startsWith("/**")) {
-        inBlock.set(true);
-      }
-
-      if (inBlock.get()) {
-        // Collect all lines in a block
-        list.add(item);
-      } else if (!trimmed.isEmpty() && collectNextLine.get()) {
-        // collect the next line below the comment
-        list.add(item);
-        collectNextLine.set(false);
-        list.add(""); // Mark the end of the block
-      }
-      // End of a block
-      if (inBlock.get() && trimmed.endsWith("*/")) {
-        inBlock.set(false);
-        collectNextLine.set(true);
-      }
-    };
-  }
-
-  @Override
-  public BinaryOperator<List<String>> combiner() {
-    return (list1, list2) -> {
-      list1.addAll(list2);
-      return list1;
-    };
-  }
-
-  @Override
-  public Function<List<String>, List<JavaDocInfo>> finisher() {
-    return list -> {
-      List<JavaDocInfo> result = new ArrayList<>();
-      List<String> tempBlock = new ArrayList<>();
-      for (String line : list) {
-        if (line.isEmpty()) {
-          final var doc = new JavaDocInfo(fileName, tempBlock);
-          // End of a block
-          result.add(doc);
-          tempBlock.clear();
-        } else {
-          tempBlock.add(line);
-        }
-      }
-      return result;
-    };
-  }
-
-  @Override
-  public Set<Characteristics> characteristics() {
-    return Collections.emptySet();
   }
 }
 
