@@ -86,7 +86,7 @@ Then you can compile the native image with the following command (which takes a 
 
 You can pass in an option `--all` to attempt to cross compile.
 
-Timings
+Timing the execution of the native image and the JVM version:
 
 ```bash
 java -jar target/mvn2llm.jar tech.kwik:kwik:0.9.1  2.26s user 0.28s system 158% cpu 1.602 total

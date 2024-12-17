@@ -1,0 +1,73 @@
+name: Build Native Images
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ created ]
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macOS-latest ]
+        include:
+          - os: ubuntu-latest
+            output_name: mvn2llm
+          - os: windows-latest
+            output_name: mvn2llm.exe
+          - os: macOS-latest
+            output_name: mvn2llm
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'graalvm'
+
+      - name: Build with Maven
+        run: mvn clean package
+
+      - name: Setup GraalVM Native Image
+        run: |
+          gu install native-image
+
+      - name: Build Native Image
+        run: |
+          chmod +x native-image-compile.sh
+          ./native-image-compile.sh
+
+      - name: Upload Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: mvn2llm-${{ runner.os }}
+          path: ${{ matrix.output_name }}
+          if-no-files-found: error
+
+  create-release:
+    needs: build
+    if: github.event_name == 'release' && github.event.action == 'created'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Display structure of downloaded files
+        run: ls -R
+
+      - name: Upload Release Assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for artifact in mvn2llm-*; do
+            gh release upload ${{ github.event.release.tag_name }} $artifact/* --clobber
+          done
