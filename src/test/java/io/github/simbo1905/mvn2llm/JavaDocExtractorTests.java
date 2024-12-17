@@ -2,11 +2,11 @@ package io.github.simbo1905.mvn2llm;
 
 import org.junit.jupiter.api.Test;
 
-import java.io.BufferedReader;
-import java.io.StringReader;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 
+import static io.github.simbo1905.mvn2llm.LinePushStateMachine.endOfMemberSignature;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class JavaDocExtractorTests {
@@ -25,8 +25,9 @@ class JavaDocExtractorTests {
         .first()
         .satisfies(doc -> {
           assertThat(doc.fileName()).isEqualTo("TestClass");
-          assertThat(doc.methodName()).isEqualTo("public void simpleMethod() {}");
-          assertThat(doc.documentation()).isEqualTo("/** Simple method description */");
+          assertThat(doc.memberSignature()).isEqualTo("public void simpleMethod() {}");
+          assertThat(doc.documentation()).isEqualTo("/** Simple method description */" +
+              "\n");
         });
   }
 
@@ -47,14 +48,15 @@ class JavaDocExtractorTests {
         .hasSize(1)
         .first()
         .satisfies(doc -> {
-          assertThat(doc.methodName()).isEqualTo("public void multilineMethod() {}");
+          assertThat(doc.memberSignature()).isEqualTo("public void multilineMethod() {}");
           assertThat(doc.documentation()).isEqualTo(
               """
                   /**
                    * This is a multiline
                    * documentation block
                    * with several lines
-                   */""");
+                   */
+                  """);
         });
   }
 
@@ -76,13 +78,14 @@ class JavaDocExtractorTests {
         .hasSize(1)
         .first()
         .satisfies(doc -> {
-          assertThat(doc.methodName()).isEqualTo("public void spacedMethod() {}");
+          assertThat(doc.memberSignature()).isEqualTo("public void spacedMethod() {}");
           assertThat(doc.documentation()).isEqualTo(
               """
                   /**
                    * Documentation with
                    * blank lines after
-                   */""");
+                   */
+                  """);
         });
   }
 
@@ -107,9 +110,9 @@ class JavaDocExtractorTests {
     assertThat(docs)
         .hasSize(3)
         .satisfies(docList -> {
-          assertThat(docList.get(0).methodName()).isEqualTo("public void firstMethod() {}");
-          assertThat(docList.get(1).methodName()).isEqualTo("public void secondMethod() {}");
-          assertThat(docList.get(2).methodName()).isEqualTo("public void thirdMethod() {}");
+          assertThat(docList.get(0).memberSignature()).isEqualTo("public void firstMethod() {}");
+          assertThat(docList.get(1).memberSignature()).isEqualTo("public void secondMethod() {}");
+          assertThat(docList.get(2).memberSignature()).isEqualTo("public void thirdMethod() {}");
         });
   }
 
@@ -132,8 +135,8 @@ class JavaDocExtractorTests {
         .hasSize(1)
         .first()
         .satisfies(doc -> {
-          assertThat(doc.methodName()).isEqualTo("public void documentedMethod() {}");
-          assertThat(doc.documentation()).isEqualTo("/** Real JavaDoc */");
+          assertThat(doc.memberSignature()).isEqualTo("public void documentedMethod() {}");
+          assertThat(doc.documentation()).isEqualTo("/** Real JavaDoc */\n");
         });
   }
 
@@ -157,30 +160,240 @@ class JavaDocExtractorTests {
   }
 
   private List<JavaDocInfo> extractDocs(String source) {
-    return JavaDocExtractor.extractJavaDoc(
-        new BufferedReader(new StringReader(source)),
-        "TestClass"
-    ).toList();
+    LinePushStateMachine stateMachine = new LinePushStateMachine("TestClass");
+    Arrays.stream(source.split("\n")).forEach(stateMachine::apply);
+    return stateMachine.results;
+  }
+
+  /**
+   * This is a test case of what complex looks like!
+   */
+  @SuppressWarnings(value = {
+      "one",
+      "two"
+  }
+  )
+  @Deprecated(since
+      = "Use something else")
+  public
+  static
+  class AnnotatedClass<T>
+      implements Function<
+      T,
+      List<String
+          >
+      > {
+    /**
+     * This is a field
+     */
+    @SuppressWarnings({
+        "unused",
+        "unchecked"
+    }
+    )
+    String field;
+
+
+    @Override
+    public List<String> apply(T t) {
+      return List.of();
+    }
+
+    /**
+     * This is a method
+     */
+    @SuppressWarnings({
+        "unused",
+        "unchecked"
+    }
+    )
+    public
+    static <T
+        , R>
+    List<R> doIt
+    (T t) {
+      // stuff
+      return List.of();
+    }
   }
 
   @Test
-  void testCommentBlockCollector() {
-    List<String> input = Arrays.asList(
-        "hello",
-        "  /** blah",
-        "   blah*/",
-        "stuff",
-        "/** hello ",
-        " world ",
-        " again */",
-        "something"
-    );
+  void testEndOfMemberSignatureWithAnnotations() {
+    // test field with new lines for semicolon shortcut
+    assert endOfMemberSignature("""
+        public
+         final
+         String
+         field = "value";
+        """);
+    // test the sami colon shortcut
+    assert endOfMemberSignature("public void method(@NotNull String arg){};");
+    // test class with shortcut
+    assert endOfMemberSignature("public interface MakerInterface{};");
+    // test method param with annotation
+    assert endOfMemberSignature("public void method(@NotNull String arg){");
+    // test method param with annotation and comment
+    assert endOfMemberSignature("public void method(@NotNull String arg){ // comment");
+    // test method param with annotation with value
+    assert endOfMemberSignature("""
+        public void method(@Value("default") String arg){ // comment
+        """);
+    // test method param with annotation with array of values
+    assert endOfMemberSignature("""
+        public void method(@Value({"a","b"}) String arg){ // comment
+        """);
+    // test method param with many annotations
+    assert endOfMemberSignature("""
+        public void method(@Value({"a","b"}) String arg1, @Value({"c","d"}) String arg2){ // comment
+        """);
+    // test method param with many annotations and method annotation
+    assert endOfMemberSignature("""
+        @NotNull
+        public void method(@Value({"a","b"}) String arg1, @Value({"c","d"}) String arg2){ // comment
+        """);
+    // test method param with many annotations and method annotation with value
+    assert endOfMemberSignature("""
+        @Deprecated(since="1.1")
+        public void method(@Value({"a","b"}) String arg1, @Value({"c","d"}) String arg2){ // comment
+        """);
+    // test method param with many annotations and method annotation with array
+    assert endOfMemberSignature("""
+        @SuppressWarning({"unused","unchecked"})
+        public
+          void
+            method(
+        @Value(
+        {
+        "a"
+        ,"b"})
+         String arg1, @Value
+          (
+          {"c","d"
+          }) String arg2){ // comment
+        """);
+    // test class with basic annotation
+    assert endOfMemberSignature("@Deprecated public class MyClass{");
+    // test class with annotation with value
+    assert endOfMemberSignature("@Deprecated(since=\"1.1\") public class MyClass{");
+    // test class with annotation with array
+    assert endOfMemberSignature("@SuppressWarning({\"unused\",\"unchecked\"}) public class MyClass{");
+    assert endOfMemberSignature("""
+        @SuppressWarning(
+            {
+            "unused",
+            "unchecked"
+            }
+        )
+        @Deprecated(
+            since="1.1"
+        )
+        public
+        class
+        MyClass
+        {
+        """);
+  }
 
-    List<JavaDocInfo> result = input.stream().collect(new CommentBlockCollector("ClassName"));
-    assertThat(result).containsExactly(
-        new JavaDocInfo("ClassName", "stuff", "  /** blah\n   blah*/"),
-        new JavaDocInfo("ClassName", "something", "/** hello \n world \n again */")
+
+  @Test
+  void shouldHandleComplexJavaDoc() {
+    var source = """
+        /**
+         * This is a test case of what complex looks like!
+         */
+        @SuppressWarnings(value = {
+            "one",
+            "two"
+        }
+        )
+        @Deprecated(since
+            = "Use something else")
+        public
+        static
+        class AnnotatedClass<T>
+            implements Function<
+            T,
+            List<String
+                >
+            > {
+          /**
+           * This is a field
+           */
+          @SuppressWarnings({
+              "unused",
+              "unchecked"
+          }
+          )
+          String field;
+        
+        
+          @Override
+          public List<String> apply(T t) {
+            return List.of();
+          }
+        
+          /**
+           * This is a method
+           */
+          @SuppressWarnings({
+              "unused",
+              "unchecked"
+          }
+          )
+          public
+          static <T
+              , R>
+          List<R> doIt
+          (T t) {
+            // stuff
+            return List.of();
+          }
+        }
+        """;
+
+    var docs = extractDocs(source);
+
+    assertThat(docs).hasSize(3);
+    docs.forEach(doc -> {
+      assertThat(doc.documentation().trim()).startsWith("/**");
+    });
+    docs.forEach(doc -> {
+      assertThat(doc.documentation().trim()).endsWith("*/");
+    });
+    assertThat(docs.getFirst().vacuum().trim()).isEqualTo(
+        """
+            @SuppressWarnings(value = { "one", "two" } ) @Deprecated(since = "Use something else") public static class AnnotatedClass<T> implements Function< T, List<String > > {"""
     );
+    assertThat(docs.get(1).vacuum().trim()).isEqualTo(
+        """
+            @SuppressWarnings({ "unused", "unchecked" } ) String field;"""
+    );
+    assertThat(docs.getLast().vacuum().trim()).isEqualTo(
+        """
+            @SuppressWarnings({ "unused", "unchecked" } ) public static <T , R> List<R> doIt (T t) {"""
+    );
+  }
+
+  @Test
+  void shouldHandlePackageInfo() {
+    var source = """
+        /**
+         * This is a package info
+         */
+        package io.github.simbo1905.mvn2llm;
+        """;
+    final var doc = """
+        /**
+         * This is a package info
+         */
+        """.stripIndent();
+    final var expected = new JavaDocInfo("TestClass", doc, "package io.github.simbo1905.mvn2llm;");
+    final var docs = extractDocs(source);
+    final var first = docs.getFirst();
+    assertThat(docs)
+        .containsExactly(
+            expected
+        );
   }
 
 }
