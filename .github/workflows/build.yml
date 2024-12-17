@@ -23,6 +23,8 @@ jobs:
             output_name: mvn2llm.exe
           - os: macOS-latest
             output_name: mvn2llm
+    env:
+      GRAALVM_HOME: "{{ env.JAVA_HOME }}"
 
     steps:
       - uses: actions/checkout@v4
@@ -37,6 +39,7 @@ jobs:
         run: mvn clean package
 
       - name: Build Native Image
+        shell: bash
         run: |
           chmod +x native-image-compile.sh
           ./native-image-compile.sh
