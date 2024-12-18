@@ -34,7 +34,9 @@ java -jar mvn2llm.jar <groupId>:<artifactId>:<version>
 
 Examples:
 
-```bash
+```
+# Get help
+java -jar target/mvn2llm.jar -h
 # Normal looking artifact numbering
 java -jar target/mvn2llm.jar tech.kwik:kwik:0.9.1
 # Artifact numbering that covers android
