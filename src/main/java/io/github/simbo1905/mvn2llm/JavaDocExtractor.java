@@ -30,15 +30,28 @@ import java.util.zip.ZipEntry;
 
 public class JavaDocExtractor {
   private static final Logger LOGGER = Logger.getLogger(JavaDocExtractor.class.getName());
-  public static final String HTTPS_REPO_1_MAVEN_ORG_MAVEN_2 = "https://repo1.maven.org/maven2";
 
   private static void configureLogging(Level level) {
     ConsoleHandler handler = new ConsoleHandler();
     LOGGER.setUseParentHandlers(false);
     LOGGER.addHandler(handler);
-
     LOGGER.setLevel(level);
     handler.setLevel(level);
+  }
+
+  static boolean isNativeImage() {
+    try {
+      final Class<?> clazz = Class.forName("org.graalvm.nativeimage.ImageInfo");
+      try {
+        // reflectively invoke the static method inImageRuntimeCode()  on clazz
+        final var obj = clazz.getMethod("inImageRuntimeCode").invoke(null);
+        return (boolean) obj;
+      } catch (Exception e) {
+        return false;
+      }
+    } catch (ClassNotFoundException e) {
+      return false;
+    }
   }
 
   public static void main(String[] args) {
@@ -53,7 +66,7 @@ public class JavaDocExtractor {
       final var mavenCoordinate = MavenCoordinate.parse(arguments.coordinate());
       LOGGER.fine("Parsed coordinate: %s".formatted(mavenCoordinate));
 
-      final var sourceJar = downloadSourceJar(mavenCoordinate);
+      final var sourceJar = downloadSourceJar(arguments.repo(), mavenCoordinate);
       try {
         final var extractor = new JavaDocExtractor();
         final var docs = extractor.extractJavaDocs(sourceJar);
@@ -68,13 +81,54 @@ public class JavaDocExtractor {
     }
   }
 
-  private static Path downloadSourceJar(MavenCoordinate coordinate) throws Exception {
-    final var jarPath = coordinate.toPath();
-    final var url = "%s/%s".formatted(HTTPS_REPO_1_MAVEN_ORG_MAVEN_2, jarPath);
+  private static Path downloadSourceJar(final String repo, final MavenCoordinate coordinate) throws Exception {
+    LOGGER.fine("Preparing to download source JAR for: %s".formatted(coordinate));
 
-    LOGGER.fine("Downloading source JAR from: %s".formatted(url));
+    try (final var client = HttpClient.newBuilder()
+        .followRedirects(HttpClient.Redirect.NORMAL)
+        .build()) {
+      String url;
+      if (coordinate.version().endsWith("-SNAPSHOT")) {
+        final var metadataUrl = "%s/%s/%s/%s/maven-metadata.xml".formatted(
+            repo,
+            coordinate.groupId().replace('.', '/'),
+            coordinate.artifactId(),
+            coordinate.version()
+        );
 
-    try (final var client = HttpClient.newHttpClient()) {
+        LOGGER.fine("Fetching metadata from: %s".formatted(metadataUrl));
+
+        final var metadataRequest = HttpRequest.newBuilder()
+            .uri(URI.create(metadataUrl))
+            .GET()
+            .build();
+
+        final var metadataResponse = client.send(metadataRequest, HttpResponse.BodyHandlers.ofString());
+
+        if (metadataResponse.statusCode() != 200) {
+          LOGGER.severe("Failed to fetch maven-metadata.xml from: " + metadataUrl);
+          throw new IOException("Failed to fetch maven-metadata.xml");
+        }
+
+        final var snapshot = SnapshotMetadataParser.parseSnapshotVersion(metadataResponse.body());
+        final var jarName = "%s-%s-sources.jar".formatted(
+            coordinate.artifactId(),
+            snapshot
+        );
+
+        url = "%s/%s/%s/%s/%s".formatted(
+            repo,
+            coordinate.groupId().replace('.', '/'),
+            coordinate.artifactId(),
+            coordinate.version(),
+            jarName
+        );
+      } else {
+        url = "%s/%s".formatted(repo, coordinate.toPath());
+      }
+
+      LOGGER.fine("Downloading source JAR from: %s".formatted(url));
+
       final var request = HttpRequest.newBuilder()
           .uri(URI.create(url))
           .GET()
@@ -101,7 +155,8 @@ public class JavaDocExtractor {
         Files.deleteIfExists(tempFile);
         throw new IOException("Failed to download source JAR", e);
       }
-      // as we have managed to resolve the url we will print it out at the top of the output
+
+      // Print the ASCII art and URL
       System.out.println("""
            _____ _____ _____ ___ __    __     _____
           |     |  |  |   | |_  |  |  |  |   |     |
@@ -109,6 +164,7 @@ public class JavaDocExtractor {
           |_|_|_|\\___/|_|___|___|_____|______|_|_|_|
           Downloaded:
           """ + url);
+
       return tempFile;
     }
   }
@@ -136,9 +192,7 @@ public class JavaDocExtractor {
   private List<JavaDocInfo> extractJavaDocFromEntry(JarFile jar, ZipEntry entry) {
     try (final var reader = new BufferedReader(new InputStreamReader(jar.getInputStream(entry)))) {
       LOGGER.fine("Extracting JavaDoc from: %s".formatted(entry.getName()));
-
       final LinePushStateMachine stateMachine = new LinePushStateMachine(entry.getName());
-
       reader.lines()
           .forEach(stateMachine::apply);
       return stateMachine.results;
@@ -150,32 +204,42 @@ public class JavaDocExtractor {
   }
 }
 
-record Arguments(boolean verbose, boolean help, Level logLevel, String coordinate) {
-  private static boolean isNativeImage() {
-    try {
-      final Class<?> clazz = Class.forName("org.graalvm.nativeimage.ImageInfo");
-      try {
-        // reflectively invoke the static method inImageRuntimeCode()  on clazz
-        final var obj = clazz.getMethod("inImageRuntimeCode").invoke(null);
-        return (boolean) obj;
-      } catch (Exception e) {
-        return false;
-      }
-    } catch (ClassNotFoundException e) {
-      return false;
+record MavenCoordinate(String groupId, String artifactId, String version) {
+
+  static MavenCoordinate parse(String input) {
+    final var parts = input.split(":");
+    if (parts.length != 3) {
+      throw new IllegalArgumentException("Invalid coordinate format. Expected: groupId:artifactId:version");
     }
+    return new MavenCoordinate(parts[0], parts[1], parts[2]);
   }
 
+  String toPath() {
+    return "%s/%s/%s/%s-%s-sources.jar".formatted(
+        groupId.replace('.', '/'),
+        artifactId,
+        version,
+        artifactId,
+        version
+    );
+  }
+}
+
+record Arguments(boolean verbose, Level logLevel, String repo, boolean help, String coordinate) {
+
+  public static final String HTTPS_REPO_1_MAVEN_ORG_MAVEN_2 = "https://repo1.maven.org/maven2";
   private static final String HELP_TEXT = """
       mvn2llm - Maven Download Source JAR And JavaDoc Extraction for LLM Processing
       
       Usage: %s [-v] [-l LEVEL] groupId:artifactId:version
       
       Options:
-        -h        Show this help message
+        -r REPO   Maven repository URL
+                  Default: %s
         -v        Enable verbose logging (shorthand for -l FINE)
         -l LEVEL  Set log level (OFF, SEVERE, WARNING, INFO, FINE, FINER, FINEST, ALL)
                   Default: INFO
+        -h        Show this help message
       
       Examples:
         # Normal usage
@@ -192,6 +256,8 @@ record Arguments(boolean verbose, boolean help, Level logLevel, String coordinat
     private Level logLevel = Level.INFO;
     private String coordinate = null;
     private boolean expectingLevel = false;
+    private boolean expectingRepo = false;
+    private String repo = HTTPS_REPO_1_MAVEN_ORG_MAVEN_2;
 
     Builder process(String arg) {
       if (expectingLevel) {
@@ -204,12 +270,24 @@ record Arguments(boolean verbose, boolean help, Level logLevel, String coordinat
         return this;
       }
 
+      if (expectingRepo) {
+        this.repo = arg;
+        expectingRepo = false;
+        return this;
+      }
+
       return switch (arg) {
         case "-h" -> setHelp();
         case "-v" -> setVerbose();
         case "-l" -> setExpectingLevel();
+        case "-r" -> setExpectingRepo();
         default -> setCoordinate(arg);
       };
+    }
+
+    private Builder setExpectingRepo() {
+      this.expectingRepo = true;
+      return this;
     }
 
     Builder setVerbose() {
@@ -241,18 +319,18 @@ record Arguments(boolean verbose, boolean help, Level logLevel, String coordinat
         throw new IllegalArgumentException("Log level not provided after -l flag");
       }
       if (help) {
-        return new Arguments(false, true, Level.INFO, null);
+        return new Arguments(false, Level.INFO, HTTPS_REPO_1_MAVEN_ORG_MAVEN_2, true, null);
       }
       if (coordinate == null) {
         throw new IllegalArgumentException("No coordinate provided");
       }
-      return new Arguments(verbose, false, logLevel, coordinate);
+      return new Arguments(verbose, logLevel, repo, false, coordinate);
     }
   }
 
   static Arguments parse(String[] args) {
     if (args.length == 0) {
-      return new Arguments(false, true, Level.INFO, null);
+      return new Arguments(false, Level.INFO, HTTPS_REPO_1_MAVEN_ORG_MAVEN_2, true, null);
     }
 
     return Arrays.stream(args)
@@ -265,28 +343,8 @@ record Arguments(boolean verbose, boolean help, Level logLevel, String coordinat
   }
 
   void printHelp() {
-    final var isNative = isNativeImage();
+    final var isNative = JavaDocExtractor.isNativeImage();
     final var executable = isNative ? "mvn2llm" : "java -jar mvn2llm.jar";
-    System.out.printf(HELP_TEXT + "%n", executable, executable, executable, executable);
-  }
-}
-
-record MavenCoordinate(String groupId, String artifactId, String version) {
-  static MavenCoordinate parse(String input) {
-    final var parts = input.split(":");
-    if (parts.length != 3) {
-      throw new IllegalArgumentException("Invalid coordinate format. Expected: groupId:artifactId:version");
-    }
-    return new MavenCoordinate(parts[0], parts[1], parts[2]);
-  }
-
-  String toPath() {
-    return "%s/%s/%s/%s-%s-sources.jar".formatted(
-        groupId.replace('.', '/'),
-        artifactId,
-        version,
-        artifactId,
-        version
-    );
+    System.out.printf(HELP_TEXT + "%n", executable, HTTPS_REPO_1_MAVEN_ORG_MAVEN_2, executable, executable, executable);
   }
 }
