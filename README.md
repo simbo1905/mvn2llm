@@ -16,13 +16,12 @@ from them. It prints output to `stdout` and problems to `stderr`.
 
 - Downloads source JARs directly from Maven Central based on Maven coordinates e.g. `tech.kwik:kwik:0.9.1`
 - Extracts JavaDoc comments from all Java source files adn prints them to stdout in a simple test file like format.
-- No external dependencies required.
+- No dependencies.
 - Tiny footprint.
 
 ## Requirements
 
 - Java 23 or higher
-- No external dependencies required
 
 ## Usage
 
@@ -48,14 +47,11 @@ java -jar target/mvn2llm.jar com.google.guava:guava:32.1.3-android
 java -jar target/mvn2llm.jar -r https://repo.spring.io/snapshot org.springframework:spring-webflux:6.2.2-SNAPSHOT
 ```
 
-The output includes a four line banner. If you are really trying to squeeze those out you can pipe to `tail -n +5`:
+The output includes a four line banner. If you want to squeeze those out you can pipe to `tail -n +5`:
 
 ```bash
 java -jar target/mvn2llm.jar com.google.guava:guava:32.1.3-android | tail -n +5
 ```
-
-I would like this to be a cli tool that allows for the unix way of piping and redirecting output rather than add too
-any features.
 
 ### Output Format
 
@@ -72,13 +68,13 @@ public class QuicClientConnectionImpl extends QuicConnectionImpl implements Quic
 
 ## Limitations
 
-- Requires direct access to Maven Central
 - Source JARs must be available for the requested artifacts
-- Does not yet support markdown `/// Some Documentation with [MyClass] links` comments yet!
+- Requires direct access to Maven Central as proxy settings now yet tested out. Coming soon!
+- Does not yet support markdown `/// Some Documentation with [MyClass] links`. Coming soon!
 
 ## Native Image
 
-You need to install GraalVM or higher with the native image plugin. On macOS you can:
+You need to install GraalVM or higher with the native image-plugin. On macOS you can:
 
 ```bash
 sdk install java 23.0.1-graal
