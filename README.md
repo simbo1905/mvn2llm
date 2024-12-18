@@ -34,13 +34,18 @@ java -jar mvn2llm.jar <groupId>:<artifactId>:<version>
 
 Examples:
 
-```
+```bash
 # Get help
 java -jar target/mvn2llm.jar -h
+
 # Normal looking artifact numbering
 java -jar target/mvn2llm.jar tech.kwik:kwik:0.9.1
+
 # Artifact numbering that covers android
 java -jar target/mvn2llm.jar com.google.guava:guava:32.1.3-android
+
+# Snapshot repo download
+java -jar target/mvn2llm.jar -r https://repo.spring.io/snapshot org.springframework:spring-webflux:6.2.2-SNAPSHOT
 ```
 
 The output includes a four line banner. If you are really trying to squeeze those out you can pipe to `tail -n +5`:
