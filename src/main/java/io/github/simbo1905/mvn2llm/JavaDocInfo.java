@@ -1,6 +1,11 @@
 package io.github.simbo1905.mvn2llm;
 
 record JavaDocInfo(String fileName, String documentation, String memberSignature) {
+  public JavaDocInfo {
+    fileName = fileName.strip();
+    documentation = documentation.strip();
+    memberSignature = memberSignature.strip();
+  }
 
   @Override
   public String toString() {

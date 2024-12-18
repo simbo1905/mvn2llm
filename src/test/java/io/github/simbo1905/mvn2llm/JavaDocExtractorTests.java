@@ -25,8 +25,7 @@ class JavaDocExtractorTests {
         .satisfies(doc -> {
           assertThat(doc.fileName()).isEqualTo("TestClass");
           assertThat(doc.memberSignature()).isEqualTo("public void simpleMethod() {}");
-          assertThat(doc.documentation()).isEqualTo("/** Simple method description */" +
-              "\n");
+          assertThat(doc.documentation()).isEqualTo("/** Simple method description */");
         });
   }
 
@@ -54,8 +53,7 @@ class JavaDocExtractorTests {
                    * This is a multiline
                    * documentation block
                    * with several lines
-                   */
-                  """);
+                   */""");
         });
   }
 
@@ -83,8 +81,7 @@ class JavaDocExtractorTests {
                   /**
                    * Documentation with
                    * blank lines after
-                   */
-                  """);
+                   */""");
         });
   }
 
@@ -135,7 +132,7 @@ class JavaDocExtractorTests {
         .first()
         .satisfies(doc -> {
           assertThat(doc.memberSignature()).isEqualTo("public void documentedMethod() {}");
-          assertThat(doc.documentation()).isEqualTo("/** Real JavaDoc */\n");
+          assertThat(doc.documentation()).isEqualTo("/** Real JavaDoc */");
         });
   }
 

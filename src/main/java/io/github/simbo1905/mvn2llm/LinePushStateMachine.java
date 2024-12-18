@@ -14,12 +14,14 @@ public class LinePushStateMachine {
   enum State {
     START,
     IN_JAVADOC,
+    IN_MARKDOWN,
     IN_MEMBER_SIGNATURE,
   }
 
   StringBuilder javadoc = new StringBuilder();
   StringBuilder memberSignature = new StringBuilder();
   State state = State.START;
+  boolean markdown = false;
 
   void apply(String line) {
     final var trimmed = line.trim();
@@ -31,9 +33,11 @@ public class LinePushStateMachine {
         } else if (trimmed.startsWith("/**")) {
           state = State.IN_JAVADOC;
           javadoc.append(line).append("\n");
+          markdown = false;
         } else if (trimmed.startsWith("///")) {
-          state = State.IN_JAVADOC;
+          state = State.IN_MARKDOWN;
           javadoc.append(line).append("\n");
+          markdown = true;
         }
       }
       case IN_JAVADOC -> {
@@ -42,17 +46,29 @@ public class LinePushStateMachine {
           state = State.IN_MEMBER_SIGNATURE;
         }
       }
-      case IN_MEMBER_SIGNATURE -> {
-        memberSignature.append(line);
-        if (endOfMemberSignature(memberSignature.toString())) {
-          results.add(new JavaDocInfo(fileName, javadoc.toString(), memberSignature.toString().trim()));
-          state = State.START;
-          javadoc = new StringBuilder();
-          memberSignature = new StringBuilder();
+      case IN_MARKDOWN -> {
+        if (trimmed.startsWith("///")) {
+          javadoc.append(trimmed).append("\n");
         } else {
-          memberSignature.append(" ");
+          state = State.IN_MEMBER_SIGNATURE;
+          memberSigOrEnd(line);
         }
       }
+      case IN_MEMBER_SIGNATURE -> {
+        memberSigOrEnd(line);
+      }
+    }
+  }
+
+  private void memberSigOrEnd(String line) {
+    memberSignature.append(line);
+    if (endOfMemberSignature(memberSignature.toString())) {
+      results.add(new JavaDocInfo(fileName, javadoc.toString(), memberSignature.toString().trim()));
+      state = State.START;
+      javadoc = new StringBuilder();
+      memberSignature = new StringBuilder();
+    } else {
+      memberSignature.append(" ");
     }
   }
 
