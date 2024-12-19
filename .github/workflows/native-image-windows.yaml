@@ -20,7 +20,7 @@ jobs:
     name: Build Windows Native Image
     runs-on: windows-latest
     env:
-      GRAALVM_VERSION: ${{ github.event.inputs.graalvm_version || env.GRAALVM_MAJOR_VERSION }}
+      GRAALVM_VERSION: ${{ github.event.inputs.graalvm_version }}
 
     steps:
       - name: Checkout Code
