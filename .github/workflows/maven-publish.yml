@@ -11,6 +11,12 @@ on:
         description: 'Java version (e.g., 23)'
         required: true
         default: '23'
+  release:
+    types: [ created ]
+
+env:
+  JAVA_VERSION: ${{ github.event_name == 'release' && '23' || github.event.inputs.java_version }}
+  VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.version }}
 
 jobs:
   build-jar:
@@ -253,3 +259,37 @@ jobs:
         with:
           name: mvn2llm-linux-x86_64
           path: ./mvn2llm-linux-x86_64-${{ github.event.inputs.version }}
+
+  upload-to-release:
+    needs: [ build-windows, build-macos, build-linux-amd64, build-linux-x86_64 ]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: Generate SHA256 checksums
+        run: |
+          cd artifacts
+          for dir in */; do
+            cd "$dir"
+            sha256sum * > ../../"${dir%/}-sha256.txt"
+            cd ..
+          done
+          cd ..
+
+      - name: Upload binaries to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Upload each binary
+          for file in artifacts/*/*; do
+            gh release upload "${{ github.event.release.tag_name }}" "$file" --clobber
+          done
+          
+          # Upload checksums
+          for sum in *-sha256.txt; do
+            gh release upload "${{ github.event.release.tag_name }}" "$sum" --clobber
+          done
