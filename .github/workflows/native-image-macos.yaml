@@ -7,6 +7,10 @@ on:
         description: 'Version number for the build (e.g., 1.0.0)'
         required: true
         default: '0.0.1'
+      graalvm_version:
+        description: 'GraalVM version'
+        required: true
+        default: '23'
 
 jobs:
   build-macos:
@@ -20,7 +24,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '23'
+          java-version: '${{ github.event.inputs.graalvm_version }}'
           cache: 'maven'
 
       - name: Build with Maven
@@ -28,14 +32,24 @@ jobs:
 
       - name: Download and Setup GraalVM
         run: |
-          curl -O https://download.oracle.com/graalvm/23/latest/graalvm-jdk-23_macos-x64_bin.tar.gz
-          tar xzf graalvm-jdk-23_macos-x64_bin.tar.gz
-          GRAALVM_HOME=$(pwd)/$(tar tf graalvm-jdk-23_macos-x64_bin.tar.gz | grep -E '^[^/]+/?$' | head -n1)
+          curl -O "https://download.oracle.com/graalvm/${{ github.event.inputs.graalvm_version }}/latest/graalvm-jdk-${{ github.event.inputs.graalvm_version }}_macos-x64_bin.tar.gz"
+          tar xzf graalvm-jdk-${{ github.event.inputs.graalvm_version }}_macos-x64_bin.tar.gz
+          
+          # Find the GraalVM bin directory
+          GRAALVM_BIN=$(find . -type d -name "bin" -path "*/graalvm*" | head -n 1)
+          echo "Found GraalVM bin directory: $GRAALVM_BIN"
+          
+          # Set the GRAALVM_HOME to the parent of the bin directory
+          GRAALVM_HOME=$(dirname "$GRAALVM_BIN")
           echo "GRAALVM_HOME=$GRAALVM_HOME" >> $GITHUB_ENV
-          echo "PATH=$GRAALVM_HOME/bin:$PATH" >> $GITHUB_ENV
+          echo "PATH=$GRAALVM_BIN:$PATH" >> $GITHUB_ENV
 
       - name: Build Native Image
         run: |
+          # Verify native-image location
+          ls -la $GRAALVM_HOME/bin/native-image
+          
+          # Build native image
           $GRAALVM_HOME/bin/native-image -jar target/mvn2llm.jar
           ./mvn2llm -h
           mv mvn2llm target/native-image-macos-${{ github.event.inputs.version }}
