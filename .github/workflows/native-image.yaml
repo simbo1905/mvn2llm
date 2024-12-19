@@ -18,13 +18,15 @@ jobs:
 
       - name: Install GraalVM via Chocolatey
         run: |
-          choco install graalvm --version=21.0.0 # Install Java 23 version of GraalVM
-          refreshenv # Refresh environment variables to ensure PATH updates are applied
+          choco install graalvm --version=23.0.0 # Install GraalVM Java 23 version
+          Write-Output "Refreshing environment variables..."
+          Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
+          Update-SessionEnvironment # Refresh environment variables in the current session
 
-      - name: Verify GraalVM Installation
+      - name: Verify Installation
         run: |
-          java -version # Verify GraalVM is installed properly
-          gu --version   # Verify `gu` command is available
+          java -version # Verify that GraalVM is installed correctly
+          gu --version   # Verify that the `gu` command is available
 
       - name: Install Native Image Tool
         run: |
