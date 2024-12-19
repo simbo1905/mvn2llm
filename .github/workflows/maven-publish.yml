@@ -156,3 +156,100 @@ jobs:
         with:
           name: mvn2llm-macos
           path: ./mvn2llm-${{ github.event.inputs.version }}
+
+  build-linux-amd64:
+    needs: build-jar
+    name: Build Linux AMD64 Native Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mvn2llm-jar
+          path: target/
+
+      - name: Download and Setup GraalVM
+        run: |
+          wget "https://download.oracle.com/graalvm/${{ github.event.inputs.java_version }}/latest/graalvm-jdk-${{ github.event.inputs.java_version }}_linux-x64_bin.tar.gz"
+          tar xzf graalvm-jdk-${{ github.event.inputs.java_version }}_linux-x64_bin.tar.gz
+          
+          # Find the GraalVM bin directory
+          GRAALVM_BIN=$(find . -type d -name "bin" -path "*/graalvm*" | head -n 1)
+          echo "Found GraalVM bin directory: $GRAALVM_BIN"
+          
+          # Set the GRAALVM_HOME to the parent of the bin directory
+          GRAALVM_HOME=$(dirname "$GRAALVM_BIN")
+          echo "GRAALVM_HOME=$GRAALVM_HOME" >> $GITHUB_ENV
+          echo "PATH=$GRAALVM_BIN:$PATH" >> $GITHUB_ENV
+
+      - name: Build Native Image
+        run: |
+          # Verify native-image location
+          ls -la $GRAALVM_HOME/bin/native-image
+          
+          # Build native image
+          $GRAALVM_HOME/bin/native-image \
+            --no-fallback \
+            --enable-preview \
+            --enable-native-access=ALL-UNNAMED \
+            -H:+ReportExceptionStackTraces \
+            -H:+AddAllCharsets \
+            -jar target/mvn2llm.jar \
+            mvn2llm
+
+          mv mvn2llm mvn2llm-linux-amd64-${{ github.event.inputs.version }}
+
+      - name: Upload Native Image
+        uses: actions/upload-artifact@v4
+        with:
+          name: mvn2llm-linux-amd64
+          path: ./mvn2llm-linux-amd64-${{ github.event.inputs.version }}
+
+  build-linux-x86_64:
+    needs: build-jar
+    name: Build Linux x86_64 Native Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mvn2llm-jar
+          path: target/
+
+      - name: Download and Setup GraalVM
+        run: |
+          wget "https://download.oracle.com/graalvm/${{ github.event.inputs.java_version }}/latest/graalvm-jdk-${{ github.event.inputs.java_version }}_linux-x64_bin.tar.gz"
+          tar xzf graalvm-jdk-${{ github.event.inputs.java_version }}_linux-x64_bin.tar.gz
+          
+          # Find the GraalVM bin directory
+          GRAALVM_BIN=$(find . -type d -name "bin" -path "*/graalvm*" | head -n 1)
+          echo "Found GraalVM bin directory: $GRAALVM_BIN"
+          
+          # Set the GRAALVM_HOME to the parent of the bin directory
+          GRAALVM_HOME=$(dirname "$GRAALVM_BIN")
+          echo "GRAALVM_HOME=$GRAALVM_HOME" >> $GITHUB_ENV
+          echo "PATH=$GRAALVM_BIN:$PATH" >> $GITHUB_ENV
+
+      - name: Build Native Image with x86_64 Target
+        run: |
+          # Verify native-image location
+          ls -la $GRAALVM_HOME/bin/native-image
+          
+          # Build native image
+          $GRAALVM_HOME/bin/native-image \
+            --no-fallback \
+            --enable-preview \
+            --enable-native-access=ALL-UNNAMED \
+            -H:+ReportExceptionStackTraces \
+            -H:+AddAllCharsets \
+            --native-compiler-options=-march=x86-64 \
+            -jar target/mvn2llm.jar \
+            mvn2llm
+
+          mv mvn2llm mvn2llm-linux-x86_64-${{ github.event.inputs.version }}
+
+      - name: Upload Native Image
+        uses: actions/upload-artifact@v4
+        with:
+          name: mvn2llm-linux-x86_64
+          path: ./mvn2llm-linux-x86_64-${{ github.event.inputs.version }}
