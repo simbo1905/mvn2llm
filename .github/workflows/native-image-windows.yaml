@@ -1,5 +1,8 @@
 name: Build Native Image on Windows
 
+env:
+  GRAALVM_MAJOR_VERSION: '23'  # Default GraalVM version
+
 on:
   workflow_dispatch:
     inputs:
@@ -7,36 +10,78 @@ on:
         description: 'Version number for the build (e.g., 1.0.0)'
         required: true
         default: '0.0.1'
+      graalvm_version:
+        description: 'GraalVM major version'
+        required: false
+        default: '23'
 
 jobs:
   build-windows:
     name: Build Windows Native Image
     runs-on: windows-latest
+    env:
+      GRAALVM_VERSION: ${{ github.event.inputs.graalvm_version || env.GRAALVM_MAJOR_VERSION }}
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Install GraalVM via Chocolatey
-        shell: powershell
+      - name: Download and Extract GraalVM
+        shell: pwsh
         run: |
-          choco install graalvm
-          Write-Output "Running refreshenv..."
-          Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
-          Update-SessionEnvironment
+          $graalvmUrl = "https://download.oracle.com/graalvm/${{ env.GRAALVM_VERSION }}/latest/graalvm-jdk-${{ env.GRAALVM_VERSION }}_windows-x64_bin.zip"
           
-          Write-Output "`nListing GraalVM installation directory contents:"
-          Get-ChildItem "C:\Program Files\GraalVM" -Recurse | Select-Object FullName
+          # Download using PowerShell
+          Write-Host "Downloading GraalVM from $graalvmUrl"
+          Invoke-WebRequest -Uri $graalvmUrl -OutFile graalvm.zip
           
-          Write-Output "`nLooking specifically for gu.exe:"
-          Get-ChildItem "C:\Program Files\GraalVM" -Recurse -Filter "gu.exe" | Select-Object FullName
+          # Extract the zip
+          Write-Host "Extracting GraalVM..."
+          Expand-Archive -Path graalvm.zip -DestinationPath .
+          
+          # Find the bin directory
+          $binDir = Get-ChildItem -Recurse -Directory | 
+                   Where-Object { $_.Name -eq "bin" -and $_.FullName -like "*graalvm*" } |
+                   Select-Object -First 1
+          
+          if (-not $binDir) {
+              throw "Could not find GraalVM bin directory"
+          }
+          
+          # Add the bin directory to PATH
+          echo "$($binDir.FullName)" | Out-File -FilePath $env:GITHUB_PATH -Append
+          
+          # Also add the native-image directory to PATH
+          $nativeImageDir = Get-ChildItem -Recurse -Directory |
+                          Where-Object { $_.FullName -like "*svm\bin*" } |
+                          Select-Object -First 1
+          
+          if ($nativeImageDir) {
+              echo "$($nativeImageDir.FullName)" | Out-File -FilePath $env:GITHUB_PATH -Append
+          }
+          
+          # Verify native-image is available
+          $nativeImageExe = Get-ChildItem -Recurse -File |
+                           Where-Object { $_.Name -eq "native-image.exe" } |
+                           Select-Object -First 1
+          
+          if (-not $nativeImageExe) {
+              throw "native-image.exe not found"
+          }
+          
+          Write-Host "Native image found at: $($nativeImageExe.FullName)"
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'jdk'
+          java-version: ${{ env.GRAALVM_VERSION }}
 
       - name: Build Native Image
-        shell: powershell
+        shell: pwsh
         run: |
-          Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
-          Update-SessionEnvironment
-          ./mvnw.cmd package -Pnative
-          Move-Item target/*-runner.exe "target/native-image-windows-${{ github.event.inputs.version }}.exe"
+          ./mvnw package -Pnative
+          Move-Item target/*-runner target/native-image-windows-${{ github.event.inputs.version }}.exe
 
       - name: Upload Artifact (Windows)
         uses: actions/upload-artifact@v3
