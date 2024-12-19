@@ -19,39 +19,36 @@ jobs:
       - name: Install GraalVM via Chocolatey
         shell: powershell
         run: |
+          # Capture environment before choco install
+          Get-ChildItem env: | Sort-Object -Property Name | Out-File env_before_choco.txt
+          
           choco install graalvm
-          Write-Output "Installed GraalVM, refreshing environment..."
+          Write-Output "Installed GraalVM..."
           
-          # Import and run refreshenv
-          Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
-          Update-SessionEnvironment
+          # Capture environment after choco but before refreshenv
+          Get-ChildItem env: | Sort-Object -Property Name | Out-File env_after_choco.txt
           
-          # Debug - show all environment variables
-          Write-Output "All Environment Variables after refresh:"
-          Get-ChildItem env:
+          Write-Output "Running refreshenv..."
+          refreshenv
           
-          # Try to locate GraalVM installation
-          Write-Output "Looking for GraalVM in PATH:"
-          $env:PATH -split ';' | Where-Object { $_ -like '*GraalVM*' }
+          # Capture environment after refreshenv
+          Get-ChildItem env: | Sort-Object -Property Name | Out-File env_after_refresh.txt
           
-          Write-Output "JAVA_HOME setting:"
-          $env:JAVA_HOME
+          # Compare the differences
+          Write-Output "Changes made by choco install:"
+          Compare-Object (Get-Content env_before_choco.txt) (Get-Content env_after_choco.txt)
           
-          Write-Output "GRAAL_HOME setting:"
-          $env:GRAAL_HOME
+          Write-Output "`nChanges made by refreshenv:"
+          Compare-Object (Get-Content env_after_choco.txt) (Get-Content env_after_refresh.txt)
           
-          # Use whatever path refreshenv set
-          Write-Output "Installing native-image using gu from PATH..."
+          Write-Output "Installing native-image..."
           gu install native-image
 
       - name: Build Native Image
         shell: powershell
         run: |
-          # No need to set paths - use what refreshenv set up
-          Write-Output "Building with Maven..."
+          refreshenv
           ./mvnw.cmd package -Pnative
-          
-          Write-Output "Renaming output file..."
           Move-Item target/*-runner.exe "target/native-image-windows-${{ github.event.inputs.version }}.exe"
 
       - name: Upload Artifact (Windows)
