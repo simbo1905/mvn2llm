@@ -1,0 +1,91 @@
+name: Build Native Images
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number for the build (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+
+jobs:
+  build-linux:
+    name: Build Linux Native Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up GraalVM
+        uses: sdkman/sdkman-action@v2
+        with:
+          java-version: '21.0.0-graal' # Specify the GraalVM version
+
+      - name: Install Native Image Tool
+        run: gu install native-image
+
+      - name: Build Native Image
+        run: |
+          ./mvnw package -Pnative
+          mv target/*-runner target/native-image-linux-${{ github.event.inputs.version }}
+
+      - name: Upload Artifact (Linux)
+        uses: actions/upload-artifact@v3
+        with:
+          name: native-image-linux-${{ github.event.inputs.version }}
+          path: target/native-image-linux-${{ github.event.inputs.version }}
+
+  build-windows:
+    name: Build Windows Native Image
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up GraalVM
+        run: choco install graalvm --version=21.0.0 # Install GraalVM using Chocolatey
+
+      - name: Add GraalVM to PATH
+        run: |
+          setx PATH "%PATH%;C:\Program Files\GraalVM\bin"
+
+      - name: Install Native Image Tool
+        run: gu install native-image
+
+      - name: Build Native Image
+        run: |
+          ./mvnw.cmd package -Pnative
+          rename target\*-runner.exe target\native-image-windows-${{ github.event.inputs.version }}.exe
+
+      - name: Upload Artifact (Windows)
+        uses: actions/upload-artifact@v3
+        with:
+          name: native-image-windows-${{ github.event.inputs.version }}
+          path: target/native-image-windows-${{ github.event.inputs.version }}.exe
+
+  build-macos:
+    name: Build macOS Native Image
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up GraalVM
+        run: brew install --cask graalvm/tap/graalvm-ce-java21 # Install GraalVM using Homebrew
+
+      - name: Add GraalVM to PATH
+        run: echo 'export PATH="/Library/Java/JavaVirtualMachines/graalvm-ce-java21-*/Contents/Home/bin:$PATH"' >> $GITHUB_ENV
+
+      - name: Install Native Image Tool
+        run: gu install native-image
+
+      - name: Build Native Image
+        run: |
+          ./mvnw package -Pnative
+          mv target/*-runner target/native-image-macos-${{ github.event.inputs.version }}
+
+      - name: Upload Artifact (macOS)
+        uses: actions/upload-artifact@v3
+        with:
+          name: native-image-macos-${{ github.event.inputs.version }}
+          path: target/native-image-macos-${{ github.event.inputs.version }}
