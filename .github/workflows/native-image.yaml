@@ -19,35 +19,19 @@ jobs:
       - name: Install GraalVM via Chocolatey
         shell: powershell
         run: |
-          # Capture environment before choco install
-          Get-ChildItem env: | Sort-Object -Property Name | Out-File env_before_choco.txt
-          
           choco install graalvm
-          Write-Output "Installed GraalVM..."
-          
-          # Capture environment after choco but before refreshenv
-          Get-ChildItem env: | Sort-Object -Property Name | Out-File env_after_choco.txt
-          
           Write-Output "Running refreshenv..."
-          Import-Module $env:ChocolateyInstall\helpers\chocolateyProfile.psm1
-          
-          # Capture environment after refreshenv
-          Get-ChildItem env: | Sort-Object -Property Name | Out-File env_after_refresh.txt
-          
-          # Compare the differences
-          Write-Output "Changes made by choco install:"
-          Compare-Object (Get-Content env_before_choco.txt) (Get-Content env_after_choco.txt)
-          
-          Write-Output "`nChanges made by refreshenv:"
-          Compare-Object (Get-Content env_after_choco.txt) (Get-Content env_after_refresh.txt)
+          Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
+          Update-SessionEnvironment
           
           Write-Output "Installing native-image..."
-          gu install native-image
+          & "C:\Program Files\GraalVM\bin\gu.exe" install native-image
 
       - name: Build Native Image
         shell: powershell
         run: |
-          Import-Module $env:ChocolateyInstall\helpers\chocolateyProfile.psm1
+          Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
+          Update-SessionEnvironment
           ./mvnw.cmd package -Pnative
           Move-Item target/*-runner.exe "target/native-image-windows-${{ github.event.inputs.version }}.exe"
 
