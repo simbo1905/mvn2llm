@@ -6,7 +6,7 @@ on:
       version:
         description: 'Version number for the build (e.g., 1.0.0)'
         required: true
-        default: '1.0.0'
+        default: '0.0.1'
 
 jobs:
   build-windows:
@@ -18,7 +18,7 @@ jobs:
 
       - name: Install GraalVM via Chocolatey
         run: |
-          choco install graalvm --version=23.0.0 # Install GraalVM Java 23 version
+          choco install graalvm # Install GraalVM Java 23 version
           Write-Output "Refreshing environment variables..."
           Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
           Update-SessionEnvironment # Refresh environment variables in the current session
