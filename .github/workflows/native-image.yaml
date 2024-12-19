@@ -29,7 +29,7 @@ jobs:
           Get-ChildItem env: | Sort-Object -Property Name | Out-File env_after_choco.txt
           
           Write-Output "Running refreshenv..."
-          refreshenv
+          Import-Module $env:ChocolateyInstall\helpers\chocolateyProfile.psm1
           
           # Capture environment after refreshenv
           Get-ChildItem env: | Sort-Object -Property Name | Out-File env_after_refresh.txt
@@ -47,7 +47,7 @@ jobs:
       - name: Build Native Image
         shell: powershell
         run: |
-          refreshenv
+          Import-Module $env:ChocolateyInstall\helpers\chocolateyProfile.psm1
           ./mvnw.cmd package -Pnative
           Move-Item target/*-runner.exe "target/native-image-windows-${{ github.event.inputs.version }}.exe"
 
