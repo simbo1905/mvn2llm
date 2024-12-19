@@ -1,0 +1,36 @@
+name: Build Native Image on macOS
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number for the build (e.g., 1.0.0)'
+        required: true
+        default: '0.0.1'
+
+jobs:
+  build-macos:
+    name: Build macOS Native Image
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '23'
+          distribution: 'graalvm'
+          native-image: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Native Image
+        run: |
+          ./mvnw package -Pnative
+          mv target/*-runner target/native-image-macos-${{ github.event.inputs.version }}
+
+      - name: Upload Artifact (macOS)
+        uses: actions/upload-artifact@v3
+        with:
+          name: native-image-macos-${{ github.event.inputs.version }}
+          path: target/native-image-macos-${{ github.event.inputs.version }}
