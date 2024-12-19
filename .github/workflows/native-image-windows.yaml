@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Download and Extract GraalVM
-        shell: pwsh
+        shell: powershell
         run: |
           $graalvmUrl = "https://download.oracle.com/graalvm/${{ env.GRAALVM_VERSION }}/latest/graalvm-jdk-${{ env.GRAALVM_VERSION }}_windows-x64_bin.zip"
           
@@ -78,7 +78,7 @@ jobs:
           java-version: ${{ env.GRAALVM_VERSION }}
 
       - name: Build Native Image
-        shell: pwsh
+        shell: powershell
         run: |
           ./mvnw package -Pnative
           Move-Item target/*-runner target/native-image-windows-${{ github.event.inputs.version }}.exe
