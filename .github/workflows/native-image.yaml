@@ -18,7 +18,7 @@ jobs:
 
       - name: Install GraalVM via Chocolatey
         run: |
-          choco install graalvm --version=23.0.0 # Install Java 23 version of GraalVM
+          choco install graalvm --version=21.0.0 # Install Java 23 version of GraalVM
           refreshenv # Refresh environment variables to ensure PATH updates are applied
 
       - name: Verify GraalVM Installation
