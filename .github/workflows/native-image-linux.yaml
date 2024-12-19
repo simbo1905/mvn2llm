@@ -1,8 +1,5 @@
 name: Build Native Image on Linux
 
-env:
-  GRAALVM_MAJOR_VERSION: '23'  # Default GraalVM version
-
 on:
   workflow_dispatch:
     inputs:
@@ -10,81 +7,30 @@ on:
         description: 'Version number for the build (e.g., 1.0.0)'
         required: true
         default: '0.0.1'
-      graalvm_version:
-        description: 'GraalVM major version'
-        required: false
-        default: '23'
 
 jobs:
-  build-windows:
-    name: Build Windows Native Image
-    runs-on: windows-latest
-    env:
-      GRAALVM_VERSION: ${{ github.event.inputs.graalvm_version || env.GRAALVM_MAJOR_VERSION }}
-
+  build-linux:
+    name: Build Linux Native Image
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Download and Extract GraalVM
-        shell: pwsh
-        run: |
-          $graalvmUrl = "https://download.oracle.com/graalvm/${{ env.GRAALVM_VERSION }}/latest/graalvm-jdk-${{ env.GRAALVM_VERSION }}_windows-x64_bin.zip"
-          
-          # Download using PowerShell
-          Write-Host "Downloading GraalVM from $graalvmUrl"
-          Invoke-WebRequest -Uri $graalvmUrl -OutFile graalvm.zip
-          
-          # Extract the zip
-          Write-Host "Extracting GraalVM..."
-          Expand-Archive -Path graalvm.zip -DestinationPath .
-          
-          # Find the bin directory
-          $binDir = Get-ChildItem -Recurse -Directory | 
-                   Where-Object { $_.Name -eq "bin" -and $_.FullName -like "*graalvm*" } |
-                   Select-Object -First 1
-          
-          if (-not $binDir) {
-              throw "Could not find GraalVM bin directory"
-          }
-          
-          # Add the bin directory to PATH
-          echo "$($binDir.FullName)" | Out-File -FilePath $env:GITHUB_PATH -Append
-          
-          # Also add the native-image directory to PATH
-          $nativeImageDir = Get-ChildItem -Recurse -Directory |
-                          Where-Object { $_.FullName -like "*svm\bin*" } |
-                          Select-Object -First 1
-          
-          if ($nativeImageDir) {
-              echo "$($nativeImageDir.FullName)" | Out-File -FilePath $env:GITHUB_PATH -Append
-          }
-          
-          # Verify native-image is available
-          $nativeImageExe = Get-ChildItem -Recurse -File |
-                           Where-Object { $_.Name -eq "native-image.exe" } |
-                           Select-Object -First 1
-          
-          if (-not $nativeImageExe) {
-              throw "native-image.exe not found"
-          }
-          
-          Write-Host "Native image found at: $($nativeImageExe.FullName)"
-
-      - name: Setup Java
-        uses: actions/setup-java@v3
+      - name: Setup GraalVM
+        uses: graalvm/setup-graalvm@v1
         with:
-          distribution: 'jdk'
-          java-version: ${{ env.GRAALVM_VERSION }}
+          java-version: '23'
+          distribution: 'graalvm'
+          native-image: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Native Image
-        shell: pwsh
         run: |
           ./mvnw package -Pnative
-          Move-Item target/*-runner target/native-image-windows-${{ github.event.inputs.version }}.exe
+          mv target/*-runner target/native-image-linux-${{ github.event.inputs.version }}
 
-      - name: Upload Artifact (Windows)
+      - name: Upload Artifact (Linux)
         uses: actions/upload-artifact@v3
         with:
-          name: native-image-windows-${{ github.event.inputs.version }}
-          path: target/native-image-windows-${{ github.event.inputs.version }}.exe
+          name: native-image-linux-${{ github.event.inputs.version }}
+          path: target/native-image-linux-${{ github.event.inputs.version }}
