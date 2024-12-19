@@ -27,7 +27,7 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          java-version: ${{ github.event.inputs.java_version }}
+          java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
           cache: 'maven'
 
@@ -45,7 +45,7 @@ jobs:
     name: Build Windows Native Image
     runs-on: windows-latest
     env:
-      JAVA_VERSION: ${{ github.event.inputs.java_version }}
+      JAVA_VERSION: ${{ env.JAVA_VERSION }}
 
     steps:
       - name: Download JAR artifact
@@ -119,6 +119,8 @@ jobs:
     needs: build-jar
     name: Build macOS Native Image
     runs-on: macos-latest
+    env:
+      JAVA_VERSION: ${{ env.JAVA_VERSION }}
     steps:
       - name: Download JAR artifact
         uses: actions/download-artifact@v4
@@ -128,8 +130,8 @@ jobs:
 
       - name: Download and Setup GraalVM MacOS
         run: |
-          curl -O "https://download.oracle.com/graalvm/${{ github.event.inputs.java_version }}/latest/graalvm-jdk-${{ github.event.inputs.java_version }}_macos-x64_bin.tar.gz"
-          tar xzf graalvm-jdk-${{ github.event.inputs.java_version }}_macos-x64_bin.tar.gz
+          curl -O "https://download.oracle.com/graalvm/${{ env.JAVA_VERSION }}/latest/graalvm-jdk-${{ env.JAVA_VERSION }}_macos-x64_bin.tar.gz"
+          tar xzf graalvm-jdk-${{ env.JAVA_VERSION }}_macos-x64_bin.tar.gz
           
           # Find the GraalVM bin directory
           GRAALVM_BIN=$(find . -type d -name "bin" -path "*/graalvm*" | head -n 1)
@@ -167,6 +169,8 @@ jobs:
     needs: build-jar
     name: Build Linux AMD64 Native Image
     runs-on: ubuntu-latest
+    env:
+      JAVA_VERSION: ${{ env.JAVA_VERSION }}
     steps:
       - name: Download JAR artifact
         uses: actions/download-artifact@v4
@@ -176,8 +180,8 @@ jobs:
 
       - name: Download and Setup GraalVM AMD64
         run: |
-          wget "https://download.oracle.com/graalvm/${{ github.event.inputs.java_version }}/latest/graalvm-jdk-${{ github.event.inputs.java_version }}_linux-x64_bin.tar.gz"
-          tar xzf graalvm-jdk-${{ github.event.inputs.java_version }}_linux-x64_bin.tar.gz
+          wget "https://download.oracle.com/graalvm/${{ env.JAVA_VERSION }}/latest/graalvm-jdk-${{ env.JAVA_VERSION }}_linux-x64_bin.tar.gz"
+          tar xzf graalvm-jdk-${{ env.JAVA_VERSION }}_linux-x64_bin.tar.gz
           
           # Find the GraalVM bin directory
           GRAALVM_BIN=$(find . -type d -name "bin" -path "*/graalvm*" | head -n 1)
@@ -215,6 +219,8 @@ jobs:
     needs: build-jar
     name: Build Linux Native Image x86
     runs-on: ubuntu-latest
+    env:
+      JAVA_VERSION: ${{ env.JAVA_VERSION }}
     steps:
       - name: Download JAR artifact
         uses: actions/download-artifact@v4
@@ -224,8 +230,8 @@ jobs:
 
       - name: Download and Setup GraalVM x86
         run: |
-          wget "https://download.oracle.com/graalvm/${{ github.event.inputs.java_version }}/latest/graalvm-jdk-${{ github.event.inputs.java_version }}_linux-x64_bin.tar.gz"
-          tar xzf graalvm-jdk-${{ github.event.inputs.java_version }}_linux-x64_bin.tar.gz
+          wget "https://download.oracle.com/graalvm/${{ env.JAVA_VERSION }}/latest/graalvm-jdk-${{ env.JAVA_VERSION }}_linux-x64_bin.tar.gz"
+          tar xzf graalvm-jdk-${{ env.JAVA_VERSION }}_linux-x64_bin.tar.gz
           
           # Find the GraalVM bin directory
           GRAALVM_BIN=$(find . -type d -name "bin" -path "*/graalvm*" | head -n 1)
