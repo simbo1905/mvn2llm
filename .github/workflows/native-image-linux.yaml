@@ -1,4 +1,4 @@
-name: Build Native Image on Windows
+name: Build Native Image on Linux
 
 env:
   GRAALVM_MAJOR_VERSION: '23'  # Default GraalVM version
