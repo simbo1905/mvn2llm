@@ -1,4 +1,4 @@
-name: Build JAR and Native Image
+name: Build JAR and Native Image on Windows
 
 on:
   workflow_dispatch:
