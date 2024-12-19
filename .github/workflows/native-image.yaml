@@ -24,8 +24,11 @@ jobs:
           Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
           Update-SessionEnvironment
           
-          Write-Output "Installing native-image..."
-          & "C:\Program Files\GraalVM\bin\gu.exe" install native-image
+          Write-Output "`nListing GraalVM installation directory contents:"
+          Get-ChildItem "C:\Program Files\GraalVM" -Recurse | Select-Object FullName
+          
+          Write-Output "`nLooking specifically for gu.exe:"
+          Get-ChildItem "C:\Program Files\GraalVM" -Recurse -Filter "gu.exe" | Select-Object FullName
 
       - name: Build Native Image
         shell: powershell
