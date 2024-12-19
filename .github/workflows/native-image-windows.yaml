@@ -1,7 +1,4 @@
-name: Build Native Image on Windows
-
-env:
-  GRAALVM_MAJOR_VERSION: '23'  # Default GraalVM version
+name: Build JAR and Native Image
 
 on:
   workflow_dispatch:
@@ -10,47 +7,59 @@ on:
         description: 'Version number for the build (e.g., 1.0.0)'
         required: true
         default: '0.0.1'
-      graalvm_version:
-        description: 'GraalVM major version'
+      java_version:
+        description: 'Java version (e.g., 23)'
         required: false
         default: '23'
 
 jobs:
-  build-windows:
-    name: Build Windows Native Image
-    runs-on: windows-latest
-    env:
-      GRAALVM_VERSION: ${{ github.event.inputs.graalvm_version }}
-
+  build-jar:
+    name: Build JAR on Linux
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Set up JDK 23
+      - uses: actions/checkout@v4
+      - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          java-version: '23'
+          java-version: ${{ github.event.inputs.java_version }}
           distribution: 'temurin'
-          server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
-          settings-path: ${{ github.workspace }} # location for the settings.xml file
+          server-id: github
+          settings-path: ${{ github.workspace }}
 
       - name: Build with Maven
         run: mvn -B package --file pom.xml
 
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mvn2llm-jar
+          path: target/mvn2llm.jar
+
+  build-native:
+    needs: build-jar
+    name: Build Windows Native Image
+    runs-on: windows-latest
+    env:
+      JAVA_VERSION: ${{ github.event.inputs.java_version }}
+
+    steps:
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mvn2llm-jar
+          path: target/
+
       - name: Download and Extract GraalVM
         shell: powershell
         run: |
-          $graalvmUrl = "https://download.oracle.com/graalvm/${{ env.GRAALVM_VERSION }}/latest/graalvm-jdk-${{ env.GRAALVM_VERSION }}_windows-x64_bin.zip"
+          $graalvmUrl = "https://download.oracle.com/graalvm/${{ env.JAVA_VERSION }}/latest/graalvm-jdk-${{ env.JAVA_VERSION }}_windows-x64_bin.zip"
           
-          # Download using PowerShell
           Write-Host "Downloading GraalVM from $graalvmUrl"
           Invoke-WebRequest -Uri $graalvmUrl -OutFile graalvm.zip
           
-          # Extract the zip
           Write-Host "Extracting GraalVM..."
           Expand-Archive -Path graalvm.zip -DestinationPath .
           
-          # Find the bin directory
           $binDir = Get-ChildItem -Recurse -Directory | 
                    Where-Object { $_.Name -eq "bin" -and $_.FullName -like "*graalvm*" } |
                    Select-Object -First 1
@@ -59,10 +68,8 @@ jobs:
               throw "Could not find GraalVM bin directory"
           }
           
-          # Add the bin directory to PATH
           echo "$($binDir.FullName)" | Out-File -FilePath $env:GITHUB_PATH -Append
           
-          # Also add the native-image directory to PATH
           $nativeImageDir = Get-ChildItem -Recurse -Directory |
                           Where-Object { $_.FullName -like "*svm\bin*" } |
                           Select-Object -First 1
@@ -71,7 +78,6 @@ jobs:
               echo "$($nativeImageDir.FullName)" | Out-File -FilePath $env:GITHUB_PATH -Append
           }
           
-          # Verify native-image is available
           $nativeImageExe = Get-ChildItem -Recurse -File |
                            Where-Object { $_.Name -eq "native-image.exe" } |
                            Select-Object -First 1
@@ -82,20 +88,24 @@ jobs:
           
           Write-Host "Native image found at: $($nativeImageExe.FullName)"
 
-      - name: Setup Java
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'jdk'
-          java-version: ${{ env.GRAALVM_VERSION }}
-
       - name: Build Native Image
         shell: powershell
         run: |
-          ./mvnw package -Pnative
-          Move-Item target/*-runner target/native-image-windows-${{ github.event.inputs.version }}.exe
+          $output_name = "mvn2llm-${{ github.event.inputs.version }}.exe"
+          $extra_flags = ""
+          
+          native-image.exe `
+            --no-fallback `
+            --enable-preview `
+            --enable-native-access=ALL-UNNAMED `
+            -H:+ReportExceptionStackTraces `
+            -H:+AddAllCharsets `
+            $extra_flags `
+            -jar target/mvn2llm.jar `
+            $output_name
 
-      - name: Upload Artifact (Windows)
-        uses: actions/upload-artifact@v3
+      - name: Upload Native Image
+        uses: actions/upload-artifact@v4
         with:
-          name: native-image-windows-${{ github.event.inputs.version }}
-          path: target/native-image-windows-${{ github.event.inputs.version }}.exe
+          name: mvn2llm-windows
+          path: ./mvn2llm-${{ github.event.inputs.version }}.exe
