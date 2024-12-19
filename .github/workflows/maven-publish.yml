@@ -54,7 +54,7 @@ jobs:
           name: mvn2llm-jar
           path: target/
 
-      - name: Download and Extract GraalVM
+      - name: Download and Extract Windows GraalVM
         shell: powershell
         run: |
           $graalvmUrl = "https://download.oracle.com/graalvm/${{ env.JAVA_VERSION }}/latest/graalvm-jdk-${{ env.JAVA_VERSION }}_windows-x64_bin.zip"
@@ -93,7 +93,7 @@ jobs:
           
           Write-Host "Native image found at: $($nativeImageExe.FullName)"
 
-      - name: Build Native Image
+      - name: Build Native Image Windows
         shell: powershell
         run: |
           $output_name = "mvn2llm-${{ github.event.inputs.version }}"
@@ -109,7 +109,7 @@ jobs:
             -jar target/mvn2llm.jar `
             $output_name
 
-      - name: Upload Native Image
+      - name: Upload Native Image Windows
         uses: actions/upload-artifact@v4
         with:
           name: mvn2llm-windows
@@ -126,7 +126,7 @@ jobs:
           name: mvn2llm-jar
           path: target/
 
-      - name: Download and Setup GraalVM
+      - name: Download and Setup GraalVM MacOS
         run: |
           curl -O "https://download.oracle.com/graalvm/${{ github.event.inputs.java_version }}/latest/graalvm-jdk-${{ github.event.inputs.java_version }}_macos-x64_bin.tar.gz"
           tar xzf graalvm-jdk-${{ github.event.inputs.java_version }}_macos-x64_bin.tar.gz
@@ -140,7 +140,7 @@ jobs:
           echo "GRAALVM_HOME=$GRAALVM_HOME" >> $GITHUB_ENV
           echo "PATH=$GRAALVM_BIN:$PATH" >> $GITHUB_ENV
 
-      - name: Build Native Image
+      - name: Build Native Image MacOS
         run: |
           # Verify native-image location
           ls -la $GRAALVM_HOME/bin/native-image
@@ -157,7 +157,7 @@ jobs:
 
           mv mvn2llm mvn2llm-${{ github.event.inputs.version }}
 
-      - name: Upload Native Image
+      - name: Upload Native Image MacOS
         uses: actions/upload-artifact@v4
         with:
           name: mvn2llm-macos
@@ -174,7 +174,7 @@ jobs:
           name: mvn2llm-jar
           path: target/
 
-      - name: Download and Setup GraalVM
+      - name: Download and Setup GraalVM AMD64
         run: |
           wget "https://download.oracle.com/graalvm/${{ github.event.inputs.java_version }}/latest/graalvm-jdk-${{ github.event.inputs.java_version }}_linux-x64_bin.tar.gz"
           tar xzf graalvm-jdk-${{ github.event.inputs.java_version }}_linux-x64_bin.tar.gz
@@ -188,7 +188,7 @@ jobs:
           echo "GRAALVM_HOME=$GRAALVM_HOME" >> $GITHUB_ENV
           echo "PATH=$GRAALVM_BIN:$PATH" >> $GITHUB_ENV
 
-      - name: Build Native Image
+      - name: Build Native Image AMD64
         run: |
           # Verify native-image location
           ls -la $GRAALVM_HOME/bin/native-image
@@ -205,7 +205,7 @@ jobs:
 
           mv mvn2llm mvn2llm-linux-amd64-${{ github.event.inputs.version }}
 
-      - name: Upload Native Image
+      - name: Upload Native Image AMD64
         uses: actions/upload-artifact@v4
         with:
           name: mvn2llm-linux-amd64
@@ -213,7 +213,7 @@ jobs:
 
   build-linux-x86_64:
     needs: build-jar
-    name: Build Linux x86_64 Native Image
+    name: Build Linux Native Image x86
     runs-on: ubuntu-latest
     steps:
       - name: Download JAR artifact
@@ -222,7 +222,7 @@ jobs:
           name: mvn2llm-jar
           path: target/
 
-      - name: Download and Setup GraalVM
+      - name: Download and Setup GraalVM x86
         run: |
           wget "https://download.oracle.com/graalvm/${{ github.event.inputs.java_version }}/latest/graalvm-jdk-${{ github.event.inputs.java_version }}_linux-x64_bin.tar.gz"
           tar xzf graalvm-jdk-${{ github.event.inputs.java_version }}_linux-x64_bin.tar.gz
@@ -236,7 +236,7 @@ jobs:
           echo "GRAALVM_HOME=$GRAALVM_HOME" >> $GITHUB_ENV
           echo "PATH=$GRAALVM_BIN:$PATH" >> $GITHUB_ENV
 
-      - name: Build Native Image with x86_64 Target
+      - name: Build Native Image x86
         run: |
           # Verify native-image location
           ls -la $GRAALVM_HOME/bin/native-image
@@ -254,7 +254,7 @@ jobs:
 
           mv mvn2llm mvn2llm-linux-x86_64-${{ github.event.inputs.version }}
 
-      - name: Upload Native Image
+      - name: Upload Native Image x86
         uses: actions/upload-artifact@v4
         with:
           name: mvn2llm-linux-x86_64
