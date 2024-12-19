@@ -14,20 +14,31 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Setup GraalVM
-        uses: graalvm/setup-graalvm@v1
+      - name: Setup Java and Maven
+        uses: actions/setup-java@v4
         with:
+          distribution: 'temurin'
           java-version: '23'
-          distribution: 'graalvm'
-          native-image: true
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache: 'maven'
+
+      - name: Build with Maven
+        run: mvn package
+
+      - name: Download and Setup GraalVM
+        run: |
+          curl -O https://download.oracle.com/graalvm/23/latest/graalvm-jdk-23_macos-x64_bin.tar.gz
+          tar xzf graalvm-jdk-23_macos-x64_bin.tar.gz
+          GRAALVM_HOME=$(pwd)/$(tar tf graalvm-jdk-23_macos-x64_bin.tar.gz | grep -E '^[^/]+/?$' | head -n1)
+          echo "GRAALVM_HOME=$GRAALVM_HOME" >> $GITHUB_ENV
+          echo "PATH=$GRAALVM_HOME/bin:$PATH" >> $GITHUB_ENV
 
       - name: Build Native Image
         run: |
-          ./mvnw package -Pnative
-          mv target/*-runner target/native-image-macos-${{ github.event.inputs.version }}
+          $GRAALVM_HOME/bin/native-image -jar target/mvn2llm.jar
+          ./mvn2llm -h
+          mv mvn2llm target/native-image-macos-${{ github.event.inputs.version }}
 
       - name: Upload Artifact (macOS)
         uses: actions/upload-artifact@v3
