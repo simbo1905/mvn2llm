@@ -14,10 +14,6 @@ on:
   release:
     types: [ created ]
 
-env:
-  JAVA_VERSION: ${{ github.event_name == 'release' && '23' || github.event.inputs.java_version }}
-  VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.version }}
-
 jobs:
   build-jar:
     name: Build JAR
@@ -44,6 +40,9 @@ jobs:
     needs: build-jar
     name: Build Windows Native Image
     runs-on: windows-latest
+    env:
+      JAVA_VERSION: ${{ github.event_name == 'release' && '23' || github.event.inputs.java_version }}
+      VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.version }}
 
     steps:
       - name: Download JAR artifact
@@ -117,6 +116,9 @@ jobs:
     needs: build-jar
     name: Build macOS Native Image
     runs-on: macos-latest
+    env:
+      JAVA_VERSION: ${{ github.event_name == 'release' && '23' || github.event.inputs.java_version }}
+      VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.version }}
     steps:
       - name: Download JAR artifact
         uses: actions/download-artifact@v4
@@ -165,6 +167,9 @@ jobs:
     needs: build-jar
     name: Build Linux AMD64 Native Image
     runs-on: ubuntu-latest
+    env:
+      JAVA_VERSION: ${{ github.event_name == 'release' && '23' || github.event.inputs.java_version }}
+      VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.version }}
     steps:
       - name: Download JAR artifact
         uses: actions/download-artifact@v4
@@ -213,6 +218,9 @@ jobs:
     needs: build-jar
     name: Build Linux Native Image x86
     runs-on: ubuntu-latest
+    env:
+      JAVA_VERSION: ${{ github.event_name == 'release' && '23' || github.event.inputs.java_version }}
+      VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.version }}
     steps:
       - name: Download JAR artifact
         uses: actions/download-artifact@v4
@@ -261,6 +269,9 @@ jobs:
   upload-to-release:
     needs: [ build-windows, build-macos, build-linux-amd64, build-linux-x86_64 ]
     runs-on: ubuntu-latest
+    env:
+      JAVA_VERSION: ${{ github.event_name == 'release' && '23' || github.event.inputs.java_version }}
+      VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.version }}
     if: github.event_name == 'release'
     steps:
       - name: Download all artifacts
@@ -284,10 +295,10 @@ jobs:
         run: |
           # Upload each binary
           for file in artifacts/*/*; do
-            gh release upload "${{ github.event.release.tag_name }}" "$file" --clobber
+            gh release upload "${VERSION}" "$file" --clobber
           done
           
           # Upload checksums
           for sum in *-sha256.txt; do
-            gh release upload "${{ github.event.release.tag_name }}" "$sum" --clobber
+            gh release upload "${VERSION}" "$sum" --clobber
           done
