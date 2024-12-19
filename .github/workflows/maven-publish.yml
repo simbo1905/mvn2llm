@@ -44,8 +44,6 @@ jobs:
     needs: build-jar
     name: Build Windows Native Image
     runs-on: windows-latest
-    env:
-      JAVA_VERSION: ${{ env.JAVA_VERSION }}
 
     steps:
       - name: Download JAR artifact
@@ -119,8 +117,6 @@ jobs:
     needs: build-jar
     name: Build macOS Native Image
     runs-on: macos-latest
-    env:
-      JAVA_VERSION: ${{ env.JAVA_VERSION }}
     steps:
       - name: Download JAR artifact
         uses: actions/download-artifact@v4
@@ -169,8 +165,6 @@ jobs:
     needs: build-jar
     name: Build Linux AMD64 Native Image
     runs-on: ubuntu-latest
-    env:
-      JAVA_VERSION: ${{ env.JAVA_VERSION }}
     steps:
       - name: Download JAR artifact
         uses: actions/download-artifact@v4
@@ -219,8 +213,6 @@ jobs:
     needs: build-jar
     name: Build Linux Native Image x86
     runs-on: ubuntu-latest
-    env:
-      JAVA_VERSION: ${{ env.JAVA_VERSION }}
     steps:
       - name: Download JAR artifact
         uses: actions/download-artifact@v4
