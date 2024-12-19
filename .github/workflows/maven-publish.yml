@@ -27,7 +27,7 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          java-version: ${{ env.JAVA_VERSION }}
+          java-version: ${{ github.event_name == 'release' && '23' || github.event.inputs.java_version }}
           distribution: 'temurin'
           cache: 'maven'
 
@@ -57,7 +57,7 @@ jobs:
       - name: Download and Extract Windows GraalVM
         shell: powershell
         run: |
-          $graalvmUrl = "https://download.oracle.com/graalvm/${{ env.JAVA_VERSION }}/latest/graalvm-jdk-${{ env.JAVA_VERSION }}_windows-x64_bin.zip"
+          $graalvmUrl = "https://download.oracle.com/graalvm/${JAVA_VERSION}/latest/graalvm-jdk-${JAVA_VERSION}_windows-x64_bin.zip"
           
           Write-Host "Downloading GraalVM from $graalvmUrl"
           Invoke-WebRequest -Uri $graalvmUrl -OutFile graalvm.zip
@@ -130,8 +130,8 @@ jobs:
 
       - name: Download and Setup GraalVM MacOS
         run: |
-          curl -O "https://download.oracle.com/graalvm/${{ env.JAVA_VERSION }}/latest/graalvm-jdk-${{ env.JAVA_VERSION }}_macos-x64_bin.tar.gz"
-          tar xzf graalvm-jdk-${{ env.JAVA_VERSION }}_macos-x64_bin.tar.gz
+          curl -O "https://download.oracle.com/graalvm/${JAVA_VERSION}/latest/graalvm-jdk-${JAVA_VERSION}_macos-x64_bin.tar.gz"
+          tar xzf graalvm-jdk-${JAVA_VERSION}_macos-x64_bin.tar.gz
           
           # Find the GraalVM bin directory
           GRAALVM_BIN=$(find . -type d -name "bin" -path "*/graalvm*" | head -n 1)
@@ -180,8 +180,8 @@ jobs:
 
       - name: Download and Setup GraalVM AMD64
         run: |
-          wget "https://download.oracle.com/graalvm/${{ env.JAVA_VERSION }}/latest/graalvm-jdk-${{ env.JAVA_VERSION }}_linux-x64_bin.tar.gz"
-          tar xzf graalvm-jdk-${{ env.JAVA_VERSION }}_linux-x64_bin.tar.gz
+          wget "https://download.oracle.com/graalvm/${JAVA_VERSION}/latest/graalvm-jdk-${JAVA_VERSION}_linux-x64_bin.tar.gz"
+          tar xzf graalvm-jdk-${AVA_VERSION}_linux-x64_bin.tar.gz
           
           # Find the GraalVM bin directory
           GRAALVM_BIN=$(find . -type d -name "bin" -path "*/graalvm*" | head -n 1)
@@ -230,8 +230,8 @@ jobs:
 
       - name: Download and Setup GraalVM x86
         run: |
-          wget "https://download.oracle.com/graalvm/${{ env.JAVA_VERSION }}/latest/graalvm-jdk-${{ env.JAVA_VERSION }}_linux-x64_bin.tar.gz"
-          tar xzf graalvm-jdk-${{ env.JAVA_VERSION }}_linux-x64_bin.tar.gz
+          wget "https://download.oracle.com/graalvm/${JAVA_VERSION}/latest/graalvm-jdk-${JAVA_VERSION}_linux-x64_bin.tar.gz"
+          tar xzf graalvm-jdk-${JAVA_VERSION}_linux-x64_bin.tar.gz
           
           # Find the GraalVM bin directory
           GRAALVM_BIN=$(find . -type d -name "bin" -path "*/graalvm*" | head -n 1)
