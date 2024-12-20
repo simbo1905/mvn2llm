@@ -53,7 +53,7 @@ jobs:
       - name: Download and Extract Windows GraalVM
         shell: powershell
         run: |
-          $graalvmUrl = "https://download.oracle.com/graalvm/${JAVA_VERSION}/latest/graalvm-jdk-${JAVA_VERSION}_windows-x64_bin.zip"
+          $graalvmUrl = "https://download.oracle.com/graalvm/$env:JAVA_VERSION/latest/graalvm-jdk-$env:JAVA_VERSION_windows-x64_bin.zip"
           
           Write-Host "Downloading GraalVM from $graalvmUrl"
           Invoke-WebRequest -Uri $graalvmUrl -OutFile graalvm.zip
