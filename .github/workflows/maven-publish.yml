@@ -272,13 +272,12 @@ jobs:
           path: ./mvn2llm-linux-x86_64-${VERSION}
 
   upload-to-release:
-    needs: [ build-windows, build-macos, build-linux-amd64, build-linux-x86_64 ]
-    #needs: [ build-macos, build-linux-amd64, build-linux-x86_64 ]
+    needs: [ build-macos, build-linux-amd64, build-linux-x86_64 ]
     runs-on: ubuntu-latest
     env:
       JAVA_VERSION: ${{ github.event_name == 'release' && '23' || github.event.inputs.java_version }}
       VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.version }}
-    if: github.event_name == 'release'
+    # Remove the if condition to allow running on workflow_dispatch
     steps:
       - uses: actions/checkout@v4
 
@@ -296,6 +295,15 @@ jobs:
             cd ..
           done
           cd ..
+
+      - name: Create Release
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${VERSION}" \
+            --title "Release ${VERSION}" \
+            --draft
 
       - name: Upload binaries to release
         env:
