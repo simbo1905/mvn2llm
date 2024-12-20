@@ -48,80 +48,80 @@ jobs:
           name: mvn2llm-jar
           path: target/mvn2llm.jar
 
-  #  build-windows:
-  #    needs: build-jar
-  #    name: Build Windows Native Image
-  #    runs-on: windows-latest
-  #    env:
-  #      JAVA_VERSION: ${{ github.event_name == 'release' && '23' || github.event.inputs.java_version }}
-  #      VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.version }}
-  #    steps:
-  #      - name: Download JAR artifact
-  #        uses: actions/download-artifact@v4
-  #        with:
-  #          name: mvn2llm-jar
-  #          path: target/
-  #
-  #      - name: Download and Extract Windows GraalVM
-  #        shell: powershell
-  #        run: |
-  #          $graalvmUrl = "https://download.oracle.com/graalvm/$env:JAVA_VERSION/latest/graalvm-jdk-$env:JAVA_VERSION`_windows-x64_bin.zip"
-  #
-  #          Write-Host "Downloading GraalVM from $graalvmUrl"
-  #          Invoke-WebRequest -Uri $graalvmUrl -OutFile graalvm.zip
-  #
-  #          Write-Host "Extracting GraalVM..."
-  #          Expand-Archive -Path graalvm.zip -DestinationPath .
-  #
-  #          $binDir = Get-ChildItem -Recurse -Directory |
-  #                   Where-Object { $_.Name -eq "bin" -and $_.FullName -like "*graalvm*" } |
-  #                   Select-Object -First 1
-  #
-  #          if (-not $binDir) {
-  #              throw "Could not find GraalVM bin directory"
-  #          }
-  #
-  #          echo "$($binDir.FullName)" | Out-File -FilePath $env:GITHUB_PATH -Append
-  #
-  #          $nativeImageDir = Get-ChildItem -Recurse -Directory |
-  #                          Where-Object { $_.FullName -like "*svm\bin*" } |
-  #                          Select-Object -First 1
-  #
-  #          if ($nativeImageDir) {
-  #              echo "$($nativeImageDir.FullName)" | Out-File -FilePath $env:GITHUB_PATH -Append
-  #          }
-  #
-  #          $nativeImageExe = Get-ChildItem -Recurse -File |
-  #                           Where-Object { $_.Name -eq "native-image.exe" } |
-  #                           Select-Object -First 1
-  #
-  #          if (-not $nativeImageExe) {
-  #              throw "native-image.exe not found"
-  #          }
-  #
-  #          Write-Host "Native image found at: $($nativeImageExe.FullName)"
-  #
-  #      - name: Build Native Image Windows
-  #        shell: powershell
-  #        run: |
-  #          $output_name = "mvn2llm-$env:VERSION"
-  #          $extra_flags = ""
-  #
-  #          native-image.exe `
-  #            --no-fallback `
-  #            --enable-preview `
-  #            --enable-native-access=ALL-UNNAMED `
-  #            -H:+ReportExceptionStackTraces `
-  #            -H:+AddAllCharsets `
-  #            $extra_flags `
-  #            -jar target/mvn2llm.jar `
-  #            $output_name
-  #
-  #      - name: Upload Native Image Windows
-  #        uses: actions/upload-artifact@v4
-  #        with:
-  #          name: mvn2llm-windows
-  #          path: ./mvn2llm-${{ github.event.inputs.version }}.exe
+  build-windows:
+    needs: build-jar
+    name: Build Windows Native Image
+    runs-on: windows-latest
+    env:
+      JAVA_VERSION: ${{ github.event_name == 'release' && '23' || github.event.inputs.java_version }}
+      VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.version }}
+    steps:
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mvn2llm-jar
+          path: target/
+
+      - name: Download and Extract Windows GraalVM
+        shell: powershell
+        run: |
+          $graalvmUrl = "https://download.oracle.com/graalvm/$env:JAVA_VERSION/latest/graalvm-jdk-$env:JAVA_VERSION`_windows-x64_bin.zip"
+
+          Write-Host "Downloading GraalVM from $graalvmUrl"
+          Invoke-WebRequest -Uri $graalvmUrl -OutFile graalvm.zip
+
+          Write-Host "Extracting GraalVM..."
+          Expand-Archive -Path graalvm.zip -DestinationPath .
+
+          $binDir = Get-ChildItem -Recurse -Directory |
+                   Where-Object { $_.Name -eq "bin" -and $_.FullName -like "*graalvm*" } |
+                   Select-Object -First 1
+
+          if (-not $binDir) {
+              throw "Could not find GraalVM bin directory"
+          }
+
+          echo "$($binDir.FullName)" | Out-File -FilePath $env:GITHUB_PATH -Append
+
+          $nativeImageDir = Get-ChildItem -Recurse -Directory |
+                          Where-Object { $_.FullName -like "*svm\bin*" } |
+                          Select-Object -First 1
+
+          if ($nativeImageDir) {
+              echo "$($nativeImageDir.FullName)" | Out-File -FilePath $env:GITHUB_PATH -Append
+          }
+
+          $nativeImageExe = Get-ChildItem -Recurse -File |
+                           Where-Object { $_.Name -eq "native-image.exe" } |
+                           Select-Object -First 1
+
+          if (-not $nativeImageExe) {
+              throw "native-image.exe not found"
+          }
+
+          Write-Host "Native image found at: $($nativeImageExe.FullName)"
+
+      - name: Build Native Image Windows
+        shell: powershell
+        run: |
+          $output_name = "mvn2llm-$env:VERSION"
+          $extra_flags = ""
+
+          native-image.exe `
+            --no-fallback `
+            --enable-preview `
+            --enable-native-access=ALL-UNNAMED `
+            -H:+ReportExceptionStackTraces `
+            -H:+AddAllCharsets `
+            $extra_flags `
+            -jar target/mvn2llm.jar `
+            $output_name
+
+      - name: Upload Native Image Windows
+        uses: actions/upload-artifact@v4
+        with:
+          name: mvn2llm-windows
+          path: "./mvn2llm-$env:VERSION.exe"
 
   build-macos:
     needs: build-jar
@@ -164,15 +164,13 @@ jobs:
             -H:+ReportExceptionStackTraces \
             -H:+AddAllCharsets \
             -jar target/mvn2llm.jar \
-            mvn2llm
-
-          mv mvn2llm mvn2llm-${{ github.event.inputs.version }}
+            mvn2llm-macos-${VERSION}
 
       - name: Upload Native Image MacOS
         uses: actions/upload-artifact@v4
         with:
           name: mvn2llm-macos
-          path: ./mvn2llm-${{ github.event.inputs.version }}
+          path: ./mvn2llm-macos-${VERSION}
 
   build-linux-amd64:
     needs: build-jar
@@ -215,15 +213,13 @@ jobs:
             -H:+ReportExceptionStackTraces \
             -H:+AddAllCharsets \
             -jar target/mvn2llm.jar \
-            mvn2llm
-
-          mv mvn2llm mvn2llm-linux-amd64-${{ github.event.inputs.version }}
+            mvn2llm-linux-amd64-${VERSION}
 
       - name: Upload Native Image AMD64
         uses: actions/upload-artifact@v4
         with:
           name: mvn2llm-linux-amd64
-          path: ./mvn2llm-linux-amd64-${{ github.event.inputs.version }}
+          path: ./mvn2llm-linux-amd64-${VERSION}
 
   build-linux-x86_64:
     needs: build-jar
@@ -267,15 +263,13 @@ jobs:
             -H:+AddAllCharsets \
             --native-compiler-options=-march=x86-64 \
             -jar target/mvn2llm.jar \
-            mvn2llm
-
-          mv mvn2llm mvn2llm-linux-x86_64-${{ github.event.inputs.version }}
+            mvn2llm-linux-x86_64-${VERSION}
 
       - name: Upload Native Image x86
         uses: actions/upload-artifact@v4
         with:
           name: mvn2llm-linux-x86_64
-          path: ./mvn2llm-linux-x86_64-${{ github.event.inputs.version }}
+          path: ./mvn2llm-linux-x86_64-${VERSION}
 
   upload-to-release:
     #needs: [ build-windows, build-macos, build-linux-amd64, build-linux-x86_64 ]
