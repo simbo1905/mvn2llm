@@ -100,7 +100,7 @@ jobs:
       - name: Build Native Image Windows
         shell: powershell
         run: |
-          $output_name = "mvn2llm-${{ github.event.inputs.version }}"
+          $output_name = "mvn2llm-$env:VERSION"
           $extra_flags = ""
           
           native-image.exe `
