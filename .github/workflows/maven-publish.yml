@@ -14,6 +14,10 @@ on:
   release:
     types: [ created ]
 
+permissions:
+  contents: write
+  packages: write
+
 jobs:
   build-jar:
     name: Build JAR
@@ -283,7 +287,7 @@ jobs:
     if: github.event_name == 'release'
     steps:
       - uses: actions/checkout@v4
-        
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
