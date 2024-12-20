@@ -19,6 +19,10 @@ jobs:
     name: Build JAR
     runs-on: ubuntu-latest
     steps:
+      - name: Log
+        run: |
+          echo "Is Release? ${{ github.event_name == 'release' }}"
+          echo "Building version: ${{ env.VERSION }}"
       - uses: actions/checkout@v4
       - name: Set up JDK
         uses: actions/setup-java@v4
