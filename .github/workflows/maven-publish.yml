@@ -272,8 +272,8 @@ jobs:
           path: ./mvn2llm-linux-x86_64-${VERSION}
 
   upload-to-release:
-    #needs: [ build-windows, build-macos, build-linux-amd64, build-linux-x86_64 ]
-    needs: [ build-macos, build-linux-amd64, build-linux-x86_64 ]
+    needs: [ build-windows, build-macos, build-linux-amd64, build-linux-x86_64 ]
+    #needs: [ build-macos, build-linux-amd64, build-linux-x86_64 ]
     runs-on: ubuntu-latest
     env:
       JAVA_VERSION: ${{ github.event_name == 'release' && '23' || github.event.inputs.java_version }}
