@@ -10,14 +10,14 @@
 ```
 
 A modern Java command line utility that downloads source JARs from Maven Central and extracts JavaDoc documentation
-from them. It prints output to `stdout` and problems to `stderr`.
+from them. It prints LLM friendly output to `stdout` and logs any problems to `stderr`.
 
 ## Features
 
 - Downloads source JARs directly from Maven Central based on Maven coordinates e.g. `tech.kwik:kwik:0.9.1`
 - Extracts JavaDoc comments from all Java source files adn prints them to stdout in a simple test file like format.
 - No dependencies.
-- Tiny footprint.
+- Compiles to a native binary that starts up fast and does not need a JVM.
 
 ## Requirements
 
@@ -44,7 +44,9 @@ java -jar target/mvn2llm.jar tech.kwik:kwik:0.9.1
 java -jar target/mvn2llm.jar com.google.guava:guava:32.1.3-android
 
 # Snapshot repo download
-java -jar target/mvn2llm.jar -r https://repo.spring.io/snapshot org.springframework:spring-webflux:6.2.2-SNAPSHOT
+java -jar target/mvn2llm.jar \
+  -r https://repo.spring.io/snapshot \
+  org.springframework:spring-webflux:6.2.2-SNAPSHOT
 ```
 
 The output includes a four line banner. If you want to squeeze those out you can pipe to `tail -n +5`:
@@ -69,8 +71,6 @@ public class QuicClientConnectionImpl extends QuicConnectionImpl implements Quic
 ## Limitations
 
 - Source JARs must be available for the requested artifacts
-- Requires direct access to Maven Central as proxy settings now yet tested out. Coming soon!
-- Does not yet support markdown `/// Some Documentation with [MyClass] links`. Coming soon!
 
 ## Native Image
 
@@ -86,8 +86,6 @@ Then you can compile the native image with the following command (which takes a 
 ```bash
 ./native-image-compile.sh
 ```
-
-You can pass in an option `--all` to attempt to cross compile.
 
 Timing the execution of the native image and the JVM version:
 
