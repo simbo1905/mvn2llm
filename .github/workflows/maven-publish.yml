@@ -18,11 +18,15 @@ jobs:
   build-jar:
     name: Build JAR
     runs-on: ubuntu-latest
+    env:
+      JAVA_VERSION: ${{ github.event_name == 'release' && '23' || github.event.inputs.java_version }}
+      VERSION: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.version }}
     steps:
       - name: Log
         run: |
           echo "Is Release? ${{ github.event_name == 'release' }}"
-          echo "Building version: ${{ env.VERSION }}"
+          echo "Building version: ${VERSION}"
+          echo "Java version: ${JAVA_VERSION}"
       - uses: actions/checkout@v4
       - name: Set up JDK
         uses: actions/setup-java@v4
