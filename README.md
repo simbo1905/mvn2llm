@@ -55,6 +55,16 @@ The output includes a four line banner. If you want to squeeze those out you can
 java -jar target/mvn2llm.jar com.google.guava:guava:32.1.3-android | tail -n +5
 ```
 
+### Native Binaries Compiled With GraalVM
+
+The release has binaries for linux, windows and mac. To run on macos you need to download then remove the quarenteen flag:  
+
+```shell
+xattr -d com.apple.quarantine mvn2llm-macos-0.0.15
+mv mvn2llm-macos-0.0.15 mvn2llm
+mv mvn2llm /usr/local/bin
+```
+
 ### Output Format
 
 The tool outputs documentation in the following format:
