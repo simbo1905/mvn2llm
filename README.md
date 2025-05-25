@@ -57,14 +57,6 @@ java -jar target/mvn2llm.jar com.google.guava:guava:32.1.3-android | tail -n +5
 
 ### Native Binaries Compiled With GraalVM
 
-The release has binaries for linux, windows and mac. To run on macos you need to download then remove the quarenteen flag:  
-
-```shell
-xattr -d com.apple.quarantine mvn2llm-macos-0.0.15
-mv mvn2llm-macos-0.0.15 mvn2llm
-mv mvn2llm /usr/local/bin
-```
-
 ### Output Format
 
 The tool outputs documentation in the following format:
@@ -84,7 +76,16 @@ public class QuicClientConnectionImpl extends QuicConnectionImpl implements Quic
 
 ## Native Image
 
-You need to install GraalVM or higher with the native image-plugin. On macOS you can:
+The GitHub releases page has binaries for linux, windows and mac. To run on macOS you need to download then remove the
+quarantine flag:
+
+```shell
+xattr -d com.apple.quarantine mvn2llm-macos-0.0.15
+mv mvn2llm-macos-0.0.15 mvn2llm
+mv mvn2llm /usr/local/bin
+```
+
+To build them locally you need to install GraalVM or higher with the native image-plugin. On macOS you can:
 
 ```bash
 sdk install java 23.0.1-graal
