@@ -10,17 +10,22 @@ record MainArguments(
     boolean help,
     String coordinate,
     String httpProxy,
-    String httpsProxy
+    String httpsProxy,
+    String artefactUrl,
+    ArtefactType artefactType
 ) {
   public static final String HTTPS_REPO_1_MAVEN_ORG_MAVEN_2 = "https://repo1.maven.org/maven2";
   private static final String HELP_TEXT = """
       mvn2llm - Maven Download Source JAR And JavaDoc Extraction for LLM Processing
       
-      Usage: %s [-v] [-l LEVEL] groupId:artifactId:version
+      Usage: %s [-v] [-l LEVEL] [-z URL] groupId:artifactId:version
       
       Options:
         -r REPO   Maven repository URL
                   Default: %s
+        -z URL    URL to a zip file to download rather than a Maven coordinate.
+                  This can be used to download source code from a repository directly.
+                  The URL must point to a zip file containing the source code.
         -v        Enable verbose logging (shorthand for -l FINE)
         -l LEVEL  Set log level (OFF, SEVERE, WARNING, INFO, FINE, FINER, FINEST, ALL)
                   Default: INFO
@@ -31,6 +36,8 @@ record MainArguments(
       Examples:
         # Normal usage
         %s tech.kwik:kwik:0.9.1
+        # Zip file usage
+        %s -z https://github.com/simbo1905/showcase-project/archive/refs/heads/main.zip
         # Verbose logging
         %s -v com.google.guava:guava:32.1.3-android
         # Disable logging even on errors
@@ -53,6 +60,9 @@ record MainArguments(
     private String httpsProxy = null;
     private boolean expectingHttpProxy = false;
     private boolean expectingHttpsProxy = false;
+    private String artefactUrl = null;
+    private ArtefactType artefactType = ArtefactType.JAR;
+    private boolean expectingUrl = false;
 
     Builder process(String arg) {
       if (expectingLevel) {
@@ -79,15 +89,34 @@ record MainArguments(
         expectingHttpsProxy = false;
         return this;
       }
+      if (expectingUrl) {
+        return setUrl(arg);
+      }
       return switch (arg) {
         case "-h" -> setHelp();
         case "-v" -> setVerbose();
         case "-l" -> setExpectingLevel();
         case "-r" -> setExpectingRepo();
+        case "-z" -> setExpectingUrl();
         case "--http-proxy" -> setExpectingHttpProxy();
         case "--https-proxy" -> setExpectingHttpsProxy();
         default -> setCoordinate(arg);
       };
+    }
+
+    Builder setExpectingUrl() {
+      this.expectingUrl = true;
+      return this;
+    }
+
+    Builder setUrl(String url) {
+      if (this.coordinate != null) {
+        throw new IllegalArgumentException("Cannot specify both a coordinate and a URL");
+      }
+      this.artefactUrl = url;
+      this.artefactType = ArtefactType.ZIP;
+      this.expectingUrl = false;
+      return this;
     }
 
     Builder setExpectingRepo() {
@@ -115,7 +144,11 @@ record MainArguments(
       if (expectingLevel) {
         throw new IllegalArgumentException("Expected log level but got: " + coordinate);
       }
+      if (this.artefactUrl != null) {
+        throw new IllegalArgumentException("Cannot specify both a coordinate and a URL");
+      }
       this.coordinate = coordinate;
+      this.artefactType = ArtefactType.JAR;
       return this;
     }
 
@@ -133,13 +166,19 @@ record MainArguments(
       if (expectingLevel) {
         throw new IllegalArgumentException("Log level not provided after -l flag");
       }
+      if (expectingUrl) {
+        throw new IllegalArgumentException("URL not provided after -z flag");
+      }
       if (help) {
         return MainArguments.helpInstance();
       }
-      if (coordinate == null) {
-        throw new IllegalArgumentException("No coordinate provided");
+      if (coordinate == null && artefactUrl == null) {
+        throw new IllegalArgumentException("No coordinate or URL provided");
       }
-      return new MainArguments(verbose, logLevel, repo, false, coordinate, httpProxy, httpsProxy);
+      if (coordinate != null && artefactUrl != null) {
+        throw new IllegalArgumentException("Cannot specify both a coordinate and a URL");
+      }
+      return new MainArguments(verbose, logLevel, repo, false, coordinate, httpProxy, httpsProxy, artefactUrl, artefactType);
     }
   }
 
@@ -158,12 +197,12 @@ record MainArguments(
   }
 
   private static MainArguments helpInstance() {
-    return new MainArguments(false, Level.INFO, HTTPS_REPO_1_MAVEN_ORG_MAVEN_2, true, null, null, null);
+    return new MainArguments(false, Level.INFO, HTTPS_REPO_1_MAVEN_ORG_MAVEN_2, true, null, null, null, null, ArtefactType.JAR);
   }
 
   void printHelp() {
     final var isNative = JavaDocExtractor.isNativeImage();
     final var executable = isNative ? "mvn2llm" : "java -jar mvn2llm.jar";
-    System.out.printf(HELP_TEXT + "%n", executable, HTTPS_REPO_1_MAVEN_ORG_MAVEN_2, executable, executable, executable);
+    System.out.printf(HELP_TEXT + "%n", executable, HTTPS_REPO_1_MAVEN_ORG_MAVEN_2, executable, executable, executable, executable);
   }
 }

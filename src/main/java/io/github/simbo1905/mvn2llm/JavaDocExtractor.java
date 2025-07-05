@@ -28,6 +28,7 @@ import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 public class JavaDocExtractor {
   private static final Logger LOGGER = Logger.getLogger(JavaDocExtractor.class.getName());
@@ -42,9 +43,6 @@ public class JavaDocExtractor {
       configureLogging(arguments.logLevel());
       LOGGER.fine("MainArguments: %s".formatted(arguments));
 
-      final var mavenCoordinate = MavenCoordinate.parse(arguments.coordinate());
-      LOGGER.fine("Parsed coordinate: %s".formatted(mavenCoordinate));
-
       // HTTP client should follow redirects
       HttpClient.Builder clientBuilder = HttpClient.newBuilder()
           .followRedirects(HttpClient.Redirect.NORMAL);
@@ -55,19 +53,65 @@ public class JavaDocExtractor {
         clientBuilder = clientBuilder.proxy(proxySelector);
       }
 
-      // Pull down the source JAR. This gets complex for snapshot versions.
-      final var sourceJar = downloadSourceJar(clientBuilder, arguments.repo(), mavenCoordinate);
-
+      Path sourceFile = null;
       try {
-        final var docs = JavaDocExtractor.extractJavaDocs(sourceJar);
+        if (arguments.artefactType() == ArtefactType.JAR) {
+          final var mavenCoordinate = MavenCoordinate.parse(arguments.coordinate());
+          LOGGER.fine("Parsed mvn coordinate: %s".formatted(mavenCoordinate));
+          sourceFile = downloadSourceJar(clientBuilder, arguments.repo(), mavenCoordinate);
+        } else {
+          LOGGER.fine("Parsed zip url: %s".formatted(arguments.artefactUrl()));
+          sourceFile = downloadZipFile(clientBuilder, arguments.artefactUrl());
+        }
+
+        final var docs = JavaDocExtractor.extractJavaDocs(sourceFile, arguments.artefactType());
         docs.forEach(System.out::println);
       } finally {
-        Files.deleteIfExists(sourceJar);
-        LOGGER.fine("Cleaned up temporary files");
+        if (sourceFile != null) {
+          Files.deleteIfExists(sourceFile);
+          LOGGER.fine("Cleaned up temporary files");
+        }
       }
     } catch (Exception e) {
       LOGGER.log(Level.SEVERE, "Error processing request", e);
       System.exit(1);
+    }
+  }
+
+  private static Path downloadZipFile(HttpClient.Builder builder, String url) throws IOException {
+    LOGGER.fine("Preparing to download source ZIP for: %s".formatted(url));
+
+    try (final var client = builder.build()) {
+      LOGGER.fine("Downloading source ZIP from: %s".formatted(url));
+
+      final var request = HttpRequest.newBuilder()
+          .uri(URI.create(url))
+          .GET()
+          .build();
+
+      final var tempFile = Files.createTempFile("maven-source", ".zip");
+      LOGGER.fine("Created temporary file: %s".formatted(tempFile));
+
+      try {
+        final var response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+        if (response.statusCode() == 404) {
+          LOGGER.severe("Could not resolve URL. URL not found: " + url);
+          throw new IOException("Source ZIP not found");
+        } else if (response.statusCode() != 200) {
+          throw new IOException("Failed to download ZIP. Status code: " + response.statusCode());
+        }
+
+        try (var input = response.body();
+             var output = Files.newOutputStream(tempFile)) {
+          input.transferTo(output);
+          LOGGER.fine("Downloaded source ZIP successfully");
+        }
+      } catch (Exception e) {
+        Files.deleteIfExists(tempFile);
+        throw new IOException("Failed to download source ZIP", e);
+      }
+
+      return tempFile;
     }
   }
 
@@ -128,15 +172,6 @@ public class JavaDocExtractor {
         throw new IOException("Failed to download source JAR", e);
       }
 
-      // Print the ASCII art and URL
-      System.out.println("""
-           _____ _____ _____ ___ __    __     _____
-          |     |  |  |   | |_  |  |  |  |   |     |
-          | | | |  |  | | | |  _|  |__|  |__ | | | |
-          |_|_|_|\\___/|_|___|___|_____|______|_|_|_|
-          Downloaded:
-          """ + url);
-
       return tempFile;
     }
   }
@@ -166,26 +201,44 @@ public class JavaDocExtractor {
     return SnapshotMetadataParser.parseSnapshotVersion(metadataResponse.body());
   }
 
-  static List<JavaDocInfo> extractJavaDocs(Path jarPath) throws Exception {
-    LOGGER.fine("Processing JAR file: %s".formatted(jarPath));
-    final var list = new ArrayList<JavaDocInfo>();
-    try (final var jarFile = new JarFile(jarPath.toFile())) {
-      Enumeration<JarEntry> entries = jarFile.entries();
-      while (entries.hasMoreElements()) {
-        final var entry = entries.nextElement();
-        LOGGER.fine("Processing entry: %s".formatted(entry.getName()));
-        if (entry.getName().endsWith(".java")) {
-          LOGGER.fine("Processing Java file: %s".formatted(entry.getName()));
-          final var result = extractJavaDocFromEntry(jarFile, entry);
-          list.addAll(result);
+  static List<JavaDocInfo> extractJavaDocs(Path artefactPath, ArtefactType artefactType) throws Exception {
+    if (artefactType == ArtefactType.JAR) {
+      LOGGER.fine("Processing JAR file: %s".formatted(artefactPath));
+      final var list = new ArrayList<JavaDocInfo>();
+      try (final var jarFile = new JarFile(artefactPath.toFile())) {
+        Enumeration<JarEntry> entries = jarFile.entries();
+        while (entries.hasMoreElements()) {
+          final var entry = entries.nextElement();
+          LOGGER.fine("Processing entry: %s".formatted(entry.getName()));
+          if (entry.getName().endsWith(".java")) {
+            LOGGER.fine("Processing Java file: %s".formatted(entry.getName()));
+            final var result = extractJavaDocFromEntry(jarFile, entry);
+            list.addAll(result);
+          }
         }
       }
+      return list;
+    } else {
+      LOGGER.fine("Processing ZIP file: %s".formatted(artefactPath));
+      final var list = new ArrayList<JavaDocInfo>();
+      try (final var zipFile = new ZipFile(artefactPath.toFile())) {
+        Enumeration<? extends ZipEntry> entries = zipFile.entries();
+        while (entries.hasMoreElements()) {
+          final var entry = entries.nextElement();
+          LOGGER.fine("Processing entry: %s".formatted(entry.getName()));
+          if (entry.getName().endsWith(".java")) {
+            LOGGER.fine("Processing Java file: %s".formatted(entry.getName()));
+            final var result = extractJavaDocFromEntry(zipFile, entry);
+            list.addAll(result);
+          }
+        }
+      }
+      return list;
     }
-    return list;
   }
 
-  static List<JavaDocInfo> extractJavaDocFromEntry(JarFile jar, ZipEntry entry) {
-    try (final var reader = new BufferedReader(new InputStreamReader(jar.getInputStream(entry)))) {
+  static List<JavaDocInfo> extractJavaDocFromEntry(ZipFile zip, ZipEntry entry) {
+    try (final var reader = new BufferedReader(new InputStreamReader(zip.getInputStream(entry)))) {
       LOGGER.fine("Extracting JavaDoc from: %s".formatted(entry.getName()));
       final LinePushStateMachine stateMachine = new LinePushStateMachine(entry.getName());
       reader.lines().forEach(stateMachine::apply);
