@@ -42,3 +42,28 @@ jobs:
       - name: List output
         shell: bash
         run: ls -la target/jpackage-test/
+        
+      - name: Test the built application
+        shell: bash
+        run: |
+          echo "Testing jpackage app with slf4j example..."
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            ./target/jpackage-test/mvn2llm-test/mvn2llm-test.exe org.slf4j:slf4j-api:2.0.9 > output.txt
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            ./target/jpackage-test/mvn2llm-test.app/Contents/MacOS/mvn2llm-test org.slf4j:slf4j-api:2.0.9 > output.txt
+          else
+            ./target/jpackage-test/mvn2llm-test/bin/mvn2llm-test org.slf4j:slf4j-api:2.0.9 > output.txt
+          fi
+          
+          echo "Line count:"
+          wc -l output.txt
+          
+          echo "Last 100 lines:"
+          tail -100 output.txt
+          
+          # Verify we got some javadocs
+          if ! grep -q "org/slf4j/Logger.java" output.txt; then
+            echo "ERROR: Expected Logger.java javadocs not found!"
+            exit 1
+          fi
+          echo "SUCCESS: Found expected javadoc content"
