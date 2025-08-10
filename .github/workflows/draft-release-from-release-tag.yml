@@ -212,6 +212,8 @@ jobs:
     env:
       VERSION: ${{ needs.prepare-release.outputs.version }}
     steps:
+      - uses: actions/checkout@v4
+      
       - name: Download JAR artifact
         uses: actions/download-artifact@v4
         with:
@@ -250,6 +252,8 @@ jobs:
     env:
       VERSION: ${{ needs.prepare-release.outputs.version }}
     steps:
+      - uses: actions/checkout@v4
+      
       - name: Download JAR artifact
         uses: actions/download-artifact@v4
         with:
@@ -285,6 +289,8 @@ jobs:
     env:
       VERSION: ${{ needs.prepare-release.outputs.version }}
     steps:
+      - uses: actions/checkout@v4
+      
       - name: Download JAR artifact
         uses: actions/download-artifact@v4
         with:
