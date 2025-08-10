@@ -200,10 +200,13 @@ jobs:
       - name: Build jpackage MSI
         shell: powershell
         run: |
+          # Convert version to semantic format (max 3 parts)
+          $semver = $env:VERSION -replace '^(\d+)\.(\d+)\.(\d+).*', '$1.$2.$3'
+          
           jpackage --input target `
                    --main-jar mvn2llm-$env:VERSION.jar `
                    --name mvn2llm `
-                   --app-version $env:VERSION `
+                   --app-version $semver `
                    --type msi `
                    --java-options "--enable-preview --enable-native-access=ALL-UNNAMED" `
                    --win-console `
@@ -238,10 +241,13 @@ jobs:
           
       - name: Build jpackage DMG
         run: |
+          # Convert version to semantic format (max 3 parts)
+          SEMVER=$(echo ${VERSION} | sed -E 's/^([0-9]+)\.([0-9]+)\.([0-9]+).*/\1.\2.\3/')
+          
           jpackage --input target \
                    --main-jar mvn2llm-${VERSION}.jar \
                    --name mvn2llm \
-                   --app-version ${VERSION} \
+                   --app-version ${SEMVER} \
                    --type dmg \
                    --java-options "--enable-preview --enable-native-access=ALL-UNNAMED" \
                    --dest target/jpackage
@@ -275,10 +281,13 @@ jobs:
           
       - name: Build jpackage DEB
         run: |
+          # Convert version to semantic format (max 3 parts)
+          SEMVER=$(echo ${VERSION} | sed -E 's/^([0-9]+)\.([0-9]+)\.([0-9]+).*/\1.\2.\3/')
+          
           jpackage --input target \
                    --main-jar mvn2llm-${VERSION}.jar \
                    --name mvn2llm \
-                   --app-version ${VERSION} \
+                   --app-version ${SEMVER} \
                    --type deb \
                    --java-options "--enable-preview --enable-native-access=ALL-UNNAMED" \
                    --dest target/jpackage
