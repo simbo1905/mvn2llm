@@ -13,8 +13,7 @@
         based on the official documentation of any Maven-published Java library.
     </description>
     <properties>
-        <maven.compiler.source>23</maven.compiler.source>
-        <maven.compiler.target>23</maven.compiler.target>
+        <maven.compiler.release>24</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     <dependencies>
@@ -44,6 +43,24 @@
                             <mainClass>io.github.simbo1905.mvn2llm.JavaDocExtractor</mainClass>
                         </manifest>
                     </archive>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.panteleyev</groupId>
+                <artifactId>jpackage-maven-plugin</artifactId>
+                <version>1.6.5</version>
+                <configuration>
+                    <name>mvn2llm</name>
+                    <vendor>mvn2llm</vendor>
+                    <destination>target/dist</destination>
+                    <input>target</input>
+                    <mainJar>mvn2llm.jar</mainJar>
+                    <mainClass>io.github.simbo1905.mvn2llm.JavaDocExtractor</mainClass>
+                    <javaOptions>
+                        <javaOption>--enable-preview</javaOption>
+                        <javaOption>--enable-native-access=ALL-UNNAMED</javaOption>
+                    </javaOptions>
+                    <type>APP_IMAGE</type>
                 </configuration>
             </plugin>
         </plugins>
