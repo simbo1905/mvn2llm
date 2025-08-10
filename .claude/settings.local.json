@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git checkout:*)",
+      "Bash(git pull:*)",
+      "Bash(gh issue comment:*)",
+      "Bash(jpackage:*)",
+      "Bash(mvn clean:*)",
+      "Bash(ls:*)",
+      "Bash(java:*)",
+      "Bash(mvn jpackage:jpackage:*)",
+      "Bash(./jpackage-output/mvn2llm-test.app/Contents/MacOS/mvn2llm-test:*)",
+      "Bash(./target/jpackage-output/mvn2llm-test.app/Contents/MacOS/mvn2llm-test org.slf4j:slf4j-api:2.0.9)",
+      "Bash(./target/jpackage-output/mvn2llm-test.app/Contents/MacOS/mvn2llm-test -z https://github.com/eclipse-ee4j/jaxb-ri/archive/refs/heads/master.zip)"
+    ]
+  },
+  "enableAllProjectMcpServers": false
+}
