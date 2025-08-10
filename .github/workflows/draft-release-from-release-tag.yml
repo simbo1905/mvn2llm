@@ -205,8 +205,116 @@ jobs:
         run: |
           gh release upload "v${VERSION}" "mvn2llm-linux-${{ matrix.arch }}-${VERSION}" --clobber
 
+  build-jpackage-windows:
+    needs: [prepare-release, build-jar]
+    name: Build Windows jpackage
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.prepare-release.outputs.version }}
+    steps:
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mvn2llm-jar
+          path: target/
+          
+      - name: Set up JDK 24
+        uses: actions/setup-java@v4
+        with:
+          java-version: '24'
+          distribution: 'temurin'
+          
+      - name: Build jpackage MSI
+        shell: powershell
+        run: |
+          jpackage --input target `
+                   --main-jar mvn2llm.jar `
+                   --name mvn2llm `
+                   --type msi `
+                   --java-options "--enable-preview --enable-native-access=ALL-UNNAMED" `
+                   --win-console `
+                   --dest target/jpackage
+                   
+      - name: Upload jpackage to Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: powershell
+        run: |
+          $msiFile = Get-ChildItem -Path target/jpackage -Filter "*.msi" | Select-Object -First 1
+          gh release upload "v$env:VERSION" $msiFile.FullName --clobber
+
+  build-jpackage-macos:
+    needs: [prepare-release, build-jar]
+    name: Build macOS jpackage
+    runs-on: macos-latest
+    env:
+      VERSION: ${{ needs.prepare-release.outputs.version }}
+    steps:
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mvn2llm-jar
+          path: target/
+          
+      - name: Set up JDK 24
+        uses: actions/setup-java@v4
+        with:
+          java-version: '24'
+          distribution: 'temurin'
+          
+      - name: Build jpackage DMG
+        run: |
+          jpackage --input target \
+                   --main-jar mvn2llm.jar \
+                   --name mvn2llm \
+                   --type dmg \
+                   --java-options "--enable-preview --enable-native-access=ALL-UNNAMED" \
+                   --dest target/jpackage
+                   
+      - name: Upload jpackage to Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DMG_FILE=$(find target/jpackage -name "*.dmg" | head -1)
+          gh release upload "v${VERSION}" "$DMG_FILE" --clobber
+
+  build-jpackage-linux:
+    needs: [prepare-release, build-jar]
+    name: Build Linux jpackage
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.prepare-release.outputs.version }}
+    steps:
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mvn2llm-jar
+          path: target/
+          
+      - name: Set up JDK 24
+        uses: actions/setup-java@v4
+        with:
+          java-version: '24'
+          distribution: 'temurin'
+          
+      - name: Build jpackage DEB
+        run: |
+          jpackage --input target \
+                   --main-jar mvn2llm.jar \
+                   --name mvn2llm \
+                   --type deb \
+                   --java-options "--enable-preview --enable-native-access=ALL-UNNAMED" \
+                   --dest target/jpackage
+                   
+      - name: Upload jpackage to Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DEB_FILE=$(find target/jpackage -name "*.deb" | head -1)
+          gh release upload "v${VERSION}" "$DEB_FILE" --clobber
+
   generate-checksums:
-    needs: [ prepare-release, build-windows, build-macos, build-linux ]
+    needs: [ prepare-release, build-windows, build-macos, build-linux, build-jpackage-windows, build-jpackage-macos, build-jpackage-linux ]
     runs-on: ubuntu-latest
     env:
       VERSION: ${{ needs.prepare-release.outputs.version }}
