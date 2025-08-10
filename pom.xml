@@ -13,7 +13,7 @@
         based on the official documentation of any Maven-published Java library.
     </description>
     <properties>
-        <maven.compiler.release>24</maven.compiler.release>
+        <maven.compiler.release>23</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     <dependencies>
