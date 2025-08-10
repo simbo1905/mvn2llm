@@ -72,35 +72,20 @@ jobs:
           name: mvn2llm-jar
           path: target/
 
-      - name: Download and Extract Windows GraalVM
-        shell: powershell
-        run: |
-          $graalvmUrl = "https://download.oracle.com/graalvm/23/latest/graalvm-jdk-23_windows-x64_bin.zip"
-          
-          Write-Host "Downloading GraalVM from $graalvmUrl"
-          Invoke-WebRequest -Uri $graalvmUrl -OutFile graalvm.zip
-          
-          Write-Host "Extracting GraalVM..."
-          Expand-Archive -Path graalvm.zip -DestinationPath .
-          
-          $binDir = Get-ChildItem -Recurse -Directory |
-                   Where-Object { $_.Name -eq "bin" -and $_.FullName -like "*graalvm*" } |
-                   Select-Object -First 1
-          
-          echo "$($binDir.FullName)" | Out-File -FilePath $env:GITHUB_PATH -Append
-          
-          $nativeImageExe = Get-ChildItem -Recurse -File |
-                           Where-Object { $_.Name -eq "native-image.exe" } |
-                           Select-Object -First 1
-          
-          Write-Host "Native image found at: $($nativeImageExe.FullName)"
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '23'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          native-image-job-reports: 'true'
 
       - name: Build Native Image
         shell: powershell
         run: |
           $output_name = "mvn2llm-$env:VERSION"
           
-          native-image.exe `
+          native-image `
             --no-fallback `
             --enable-preview `
             --enable-native-access=ALL-UNNAMED `
