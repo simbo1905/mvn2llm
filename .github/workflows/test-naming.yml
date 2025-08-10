@@ -200,13 +200,22 @@ jobs:
       - name: Build jpackage MSI
         shell: powershell
         run: |
-          # Convert version to semantic format (max 3 parts)
-          $semver = $env:VERSION -replace '^(\d+)\.(\d+)\.(\d+).*', '$1.$2.$3'
+          # Convert version for MSI (major version must be 0-255)
+          # Use format: 1.YY.MMDD where YY is last 2 digits of year
+          $parts = $env:VERSION -split '\.'
+          $year = [int]$parts[0]
+          $month = [int]$parts[1] 
+          $day = [int]$parts[2]
+          $build = if ($parts.Count -gt 3) { [int]$parts[3] } else { 0 }
+          
+          # Create MSI version: 1.YY.MMDD
+          $msiVersion = "1.$($year % 100).$month$day"
+          echo "Using MSI version: $msiVersion (from $env:VERSION)"
           
           jpackage --input target `
                    --main-jar mvn2llm-$env:VERSION.jar `
                    --name mvn2llm `
-                   --app-version $semver `
+                   --app-version $msiVersion `
                    --type msi `
                    --java-options "--enable-preview --enable-native-access=ALL-UNNAMED" `
                    --win-console `
