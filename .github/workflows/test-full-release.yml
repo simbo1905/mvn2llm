@@ -1,0 +1,349 @@
+name: Test Full Release Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number for the build'
+        required: true
+        default: '2025.08.10.5'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ github.event.inputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Create Draft Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          gh release create "v${VERSION}" \
+            --title "Test Release ${VERSION}" \
+            --draft \
+            --notes "Test Release ${VERSION} - Testing full build with jpackage"
+
+  build-jar:
+    needs: prepare-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '23'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build with Maven
+        run: mvn -B package --file pom.xml
+
+      - name: Upload JAR to Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.prepare-release.outputs.version }}
+        run: |
+          gh release upload "v${VERSION}" target/mvn2llm.jar --clobber
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mvn2llm-jar
+          path: target/mvn2llm.jar
+
+  build-windows:
+    needs: [prepare-release, build-jar]
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.prepare-release.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mvn2llm-jar
+          path: target/
+
+      - name: Download and Extract Windows GraalVM
+        shell: powershell
+        run: |
+          $graalvmUrl = "https://download.oracle.com/graalvm/23/latest/graalvm-jdk-23_windows-x64_bin.zip"
+          
+          Write-Host "Downloading GraalVM from $graalvmUrl"
+          Invoke-WebRequest -Uri $graalvmUrl -OutFile graalvm.zip
+          
+          Write-Host "Extracting GraalVM..."
+          Expand-Archive -Path graalvm.zip -DestinationPath .
+          
+          $binDir = Get-ChildItem -Recurse -Directory |
+                   Where-Object { $_.Name -eq "bin" -and $_.FullName -like "*graalvm*" } |
+                   Select-Object -First 1
+          
+          echo "$($binDir.FullName)" | Out-File -FilePath $env:GITHUB_PATH -Append
+          
+          $nativeImageExe = Get-ChildItem -Recurse -File |
+                           Where-Object { $_.Name -eq "native-image.exe" } |
+                           Select-Object -First 1
+          
+          Write-Host "Native image found at: $($nativeImageExe.FullName)"
+
+      - name: Build Native Image
+        shell: powershell
+        run: |
+          $output_name = "mvn2llm-$env:VERSION"
+          
+          native-image.exe `
+            --no-fallback `
+            --enable-preview `
+            --enable-native-access=ALL-UNNAMED `
+            -H:+ReportExceptionStackTraces `
+            -H:+AddAllCharsets `
+            -jar target/mvn2llm.jar `
+            $output_name
+
+      - name: Upload to Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: powershell
+        run: |
+          gh release upload "v$env:VERSION" "mvn2llm-$env:VERSION.exe" --clobber
+
+  build-macos:
+    needs: [prepare-release, build-jar]
+    runs-on: macos-latest
+    env:
+      VERSION: ${{ needs.prepare-release.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mvn2llm-jar
+          path: target/
+
+      - name: Download and Setup GraalVM
+        run: |
+          curl -O "https://download.oracle.com/graalvm/23/latest/graalvm-jdk-23_macos-x64_bin.tar.gz"
+          tar xzf graalvm-jdk-23_macos-x64_bin.tar.gz
+          
+          GRAALVM_BIN=$(find . -type d -name "bin" -path "*/graalvm*" | head -n 1)
+          GRAALVM_HOME=$(dirname "$GRAALVM_BIN")
+          echo "GRAALVM_HOME=$GRAALVM_HOME" >> $GITHUB_ENV
+          echo "PATH=$GRAALVM_BIN:$PATH" >> $GITHUB_ENV
+
+      - name: Build Native Image
+        run: |
+          $GRAALVM_HOME/bin/native-image \
+            --no-fallback \
+            --enable-preview \
+            --enable-native-access=ALL-UNNAMED \
+            -H:+ReportExceptionStackTraces \
+            -H:+AddAllCharsets \
+            -jar target/mvn2llm.jar \
+            mvn2llm-macos-${VERSION}
+
+      - name: Upload to Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "v${VERSION}" "mvn2llm-macos-${VERSION}" --clobber
+
+  build-linux:
+    needs: [prepare-release, build-jar]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [ 'amd64', 'x86-64' ]
+        include:
+          - arch: 'amd64'
+            compiler_flags: ''
+          - arch: 'x86-64'
+            compiler_flags: '--native-compiler-options=-march=x86-64'
+    env:
+      VERSION: ${{ needs.prepare-release.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mvn2llm-jar
+          path: target/
+
+      - name: Download and Setup GraalVM
+        run: |
+          wget "https://download.oracle.com/graalvm/23/latest/graalvm-jdk-23_linux-x64_bin.tar.gz"
+          tar xzf graalvm-jdk-23_linux-x64_bin.tar.gz
+          
+          GRAALVM_BIN=$(find . -type d -name "bin" -path "*/graalvm*" | head -n 1)
+          GRAALVM_HOME=$(dirname "$GRAALVM_BIN")
+          echo "GRAALVM_HOME=$GRAALVM_HOME" >> $GITHUB_ENV
+          echo "PATH=$GRAALVM_BIN:$PATH" >> $GITHUB_ENV
+
+      - name: Build Native Image
+        run: |
+          $GRAALVM_HOME/bin/native-image \
+            --no-fallback \
+            --enable-preview \
+            --enable-native-access=ALL-UNNAMED \
+            -H:+ReportExceptionStackTraces \
+            -H:+AddAllCharsets \
+            ${{ matrix.compiler_flags }} \
+            -jar target/mvn2llm.jar \
+            mvn2llm-linux-${{ matrix.arch }}-${VERSION}
+
+      - name: Upload to Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "v${VERSION}" "mvn2llm-linux-${{ matrix.arch }}-${VERSION}" --clobber
+
+  build-jpackage-windows:
+    needs: [prepare-release, build-jar]
+    name: Build Windows jpackage
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.prepare-release.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mvn2llm-jar
+          path: target/
+          
+      - name: Set up JDK 24
+        uses: actions/setup-java@v4
+        with:
+          java-version: '24'
+          distribution: 'temurin'
+          
+      - name: Build jpackage MSI
+        shell: powershell
+        run: |
+          jpackage --input target `
+                   --main-jar mvn2llm.jar `
+                   --name mvn2llm `
+                   --type msi `
+                   --java-options "--enable-preview --enable-native-access=ALL-UNNAMED" `
+                   --win-console `
+                   --dest target/jpackage
+                   
+      - name: Upload jpackage to Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: powershell
+        run: |
+          $msiFile = Get-ChildItem -Path target/jpackage -Filter "*.msi" | Select-Object -First 1
+          gh release upload "v$env:VERSION" $msiFile.FullName --clobber
+
+  build-jpackage-macos:
+    needs: [prepare-release, build-jar]
+    name: Build macOS jpackage
+    runs-on: macos-latest
+    env:
+      VERSION: ${{ needs.prepare-release.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mvn2llm-jar
+          path: target/
+          
+      - name: Set up JDK 24
+        uses: actions/setup-java@v4
+        with:
+          java-version: '24'
+          distribution: 'temurin'
+          
+      - name: Build jpackage DMG
+        run: |
+          jpackage --input target \
+                   --main-jar mvn2llm.jar \
+                   --name mvn2llm \
+                   --type dmg \
+                   --java-options "--enable-preview --enable-native-access=ALL-UNNAMED" \
+                   --dest target/jpackage
+                   
+      - name: Upload jpackage to Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DMG_FILE=$(find target/jpackage -name "*.dmg" | head -1)
+          gh release upload "v${VERSION}" "$DMG_FILE" --clobber
+
+  build-jpackage-linux:
+    needs: [prepare-release, build-jar]
+    name: Build Linux jpackage
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.prepare-release.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mvn2llm-jar
+          path: target/
+          
+      - name: Set up JDK 24
+        uses: actions/setup-java@v4
+        with:
+          java-version: '24'
+          distribution: 'temurin'
+          
+      - name: Build jpackage DEB
+        run: |
+          jpackage --input target \
+                   --main-jar mvn2llm.jar \
+                   --name mvn2llm \
+                   --type deb \
+                   --java-options "--enable-preview --enable-native-access=ALL-UNNAMED" \
+                   --dest target/jpackage
+                   
+      - name: Upload jpackage to Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DEB_FILE=$(find target/jpackage -name "*.deb" | head -1)
+          gh release upload "v${VERSION}" "$DEB_FILE" --clobber
+
+  generate-checksums:
+    needs: [ prepare-release, build-windows, build-macos, build-linux, build-jpackage-windows, build-jpackage-macos, build-jpackage-linux ]
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.prepare-release.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download Release Assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir assets
+          cd assets
+          gh release download "v${VERSION}" --pattern "*"
+
+      - name: Generate SHA256 checksums
+        run: |
+          cd assets
+          sha256sum * > ../sha256sums.txt
+
+      - name: Upload checksums
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "v${VERSION}" sha256sums.txt --clobber
