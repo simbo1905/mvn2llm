@@ -11,7 +11,11 @@
       "Bash(mvn jpackage:jpackage:*)",
       "Bash(./jpackage-output/mvn2llm-test.app/Contents/MacOS/mvn2llm-test:*)",
       "Bash(./target/jpackage-output/mvn2llm-test.app/Contents/MacOS/mvn2llm-test org.slf4j:slf4j-api:2.0.9)",
-      "Bash(./target/jpackage-output/mvn2llm-test.app/Contents/MacOS/mvn2llm-test -z https://github.com/eclipse-ee4j/jaxb-ri/archive/refs/heads/master.zip)"
+      "Bash(./target/jpackage-output/mvn2llm-test.app/Contents/MacOS/mvn2llm-test -z https://github.com/eclipse-ee4j/jaxb-ri/archive/refs/heads/master.zip)",
+      "Bash(git push:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh workflow:*)",
+      "Bash(gh run view:*)"
     ]
   },
   "enableAllProjectMcpServers": false
