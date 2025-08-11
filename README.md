@@ -57,6 +57,18 @@ java -jar target/mvn2llm.jar com.google.guava:guava:32.1.3-android | tail -n +5
 
 ### Native Binaries Compiled With GraalVM
 
+Native binaries are available for Linux, Windows, and macOS. These binaries start instantly without requiring a JVM.
+
+### Platform-Specific Installers (New in 2025.08.10.7)
+
+In addition to native binaries, we now provide platform-specific installers built with jpackage:
+
+- **Windows**: `.msi` installer for easy installation
+- **macOS**: `.dmg` disk image for drag-and-drop installation  
+- **Linux**: `.deb` package for Debian/Ubuntu systems
+
+These installers bundle the Java runtime, so no JVM installation is required.
+
 ### Output Format
 
 The tool outputs documentation in the following format:
