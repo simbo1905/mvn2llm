@@ -111,7 +111,9 @@ jobs:
           
           # Smoke test - verify executable runs with real artifact
           echo "Testing native executable with slf4j-api..."
-          .\mvn2llm-$env:VERSION.exe org.slf4j:slf4j-api:2.0.9 | Select-String -Pattern "SLF4J API Module"
+          # Skip first 4 lines (banner) and check for expected output
+          .\mvn2llm-$env:VERSION.exe org.slf4j:slf4j-api:2.0.9 | Select-Object -Skip 4 | Out-String | Select-String -Pattern "SLF4J API Module" -Quiet
+          if ($LASTEXITCODE -ne 0) { exit 1 }
 
       - name: Upload to Release
         env:
@@ -160,7 +162,8 @@ jobs:
           
           # Smoke test - verify executable runs with real artifact
           echo "Testing native executable with slf4j-api..."
-          ./mvn2llm-${VERSION}-bin org.slf4j:slf4j-api:2.0.9 | grep "SLF4J API Module"
+          # Skip first 4 lines (banner) and check for expected output
+          ./mvn2llm-${VERSION}-bin org.slf4j:slf4j-api:2.0.9 | tail -n +5 | grep "SLF4J API Module"
 
       - name: Upload to Release
         env:
@@ -217,7 +220,8 @@ jobs:
           
           # Smoke test - verify executable runs with real artifact
           echo "Testing native executable with slf4j-api..."
-          ./mvn2llm-${VERSION}-${{ matrix.arch }}-bin org.slf4j:slf4j-api:2.0.9 | grep "SLF4J API Module"
+          # Skip first 4 lines (banner) and check for expected output
+          ./mvn2llm-${VERSION}-${{ matrix.arch }}-bin org.slf4j:slf4j-api:2.0.9 | tail -n +5 | grep "SLF4J API Module"
 
       - name: Upload to Release
         env:
