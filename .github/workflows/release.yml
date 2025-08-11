@@ -111,9 +111,13 @@ jobs:
           
           # Smoke test - verify executable runs with real artifact
           echo "Testing native executable with slf4j-api..."
-          # Skip first 4 lines (banner) and check for expected output
-          .\mvn2llm-$env:VERSION.exe org.slf4j:slf4j-api:2.0.9 | Select-Object -Skip 4 | Out-String | Select-String -Pattern "SLF4J API Module" -Quiet
-          if ($LASTEXITCODE -ne 0) { exit 1 }
+          $output = .\mvn2llm-$env:VERSION.exe org.slf4j:slf4j-api:2.0.9
+          if ($output -match "The org.slf4j.Logger interface") {
+            echo "Smoke test passed - found expected SLF4J documentation"
+          } else {
+            echo "Smoke test failed - SLF4J documentation not found"
+            exit 1
+          }
 
       - name: Upload to Release
         env:
@@ -162,8 +166,12 @@ jobs:
           
           # Smoke test - verify executable runs with real artifact
           echo "Testing native executable with slf4j-api..."
-          # Skip first 4 lines (banner) and check for expected output
-          ./mvn2llm-${VERSION}-bin org.slf4j:slf4j-api:2.0.9 | tail -n +5 | grep "SLF4J API Module"
+          if ./mvn2llm-${VERSION}-bin org.slf4j:slf4j-api:2.0.9 | grep -q "The org.slf4j.Logger interface"; then
+            echo "Smoke test passed - found expected SLF4J documentation"
+          else
+            echo "Smoke test failed - SLF4J documentation not found"
+            exit 1
+          fi
 
       - name: Upload to Release
         env:
@@ -220,8 +228,12 @@ jobs:
           
           # Smoke test - verify executable runs with real artifact
           echo "Testing native executable with slf4j-api..."
-          # Skip first 4 lines (banner) and check for expected output
-          ./mvn2llm-${VERSION}-${{ matrix.arch }}-bin org.slf4j:slf4j-api:2.0.9 | tail -n +5 | grep "SLF4J API Module"
+          if ./mvn2llm-${VERSION}-${{ matrix.arch }}-bin org.slf4j:slf4j-api:2.0.9 | grep -q "The org.slf4j.Logger interface"; then
+            echo "Smoke test passed - found expected SLF4J documentation"
+          else
+            echo "Smoke test failed - SLF4J documentation not found"
+            exit 1
+          fi
 
       - name: Upload to Release
         env:
