@@ -109,9 +109,9 @@ jobs:
           echo "Windows native artifact: mvn2llm-$env:VERSION.exe"
           dir mvn2llm-*.exe
           
-          # Smoke test - verify executable runs
-          echo "Testing native executable..."
-          .\mvn2llm-$env:VERSION.exe -h
+          # Smoke test - verify executable runs with real artifact
+          echo "Testing native executable with slf4j-api..."
+          .\mvn2llm-$env:VERSION.exe org.slf4j:slf4j-api:2.0.9 | Select-String -Pattern "SLF4J API Module"
 
       - name: Upload to Release
         env:
@@ -158,9 +158,9 @@ jobs:
           echo "macOS native artifact: mvn2llm-${VERSION}-bin"
           ls -la mvn2llm-*-bin
           
-          # Smoke test - verify executable runs
-          echo "Testing native executable..."
-          ./mvn2llm-${VERSION}-bin -h
+          # Smoke test - verify executable runs with real artifact
+          echo "Testing native executable with slf4j-api..."
+          ./mvn2llm-${VERSION}-bin org.slf4j:slf4j-api:2.0.9 | grep "SLF4J API Module"
 
       - name: Upload to Release
         env:
@@ -215,9 +215,9 @@ jobs:
           echo "Linux native artifact: mvn2llm-${VERSION}-${{ matrix.arch }}-bin"
           ls -la mvn2llm-*-bin
           
-          # Smoke test - verify executable runs
-          echo "Testing native executable..."
-          ./mvn2llm-${VERSION}-${{ matrix.arch }}-bin -h
+          # Smoke test - verify executable runs with real artifact
+          echo "Testing native executable with slf4j-api..."
+          ./mvn2llm-${VERSION}-${{ matrix.arch }}-bin org.slf4j:slf4j-api:2.0.9 | grep "SLF4J API Module"
 
       - name: Upload to Release
         env:
