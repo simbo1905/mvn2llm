@@ -1,0 +1,69 @@
+name: Release to Maven Central
+
+on:
+  workflow_dispatch:
+    inputs:
+      releaseVersion:
+        description: 'Release version (e.g., 2025.08.11)'
+        required: true
+      nextVersion:
+        description: 'Next development version (e.g., 2025.08.12-SNAPSHOT)'
+        required: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '23'
+          distribution: 'temurin'
+          cache: 'maven'
+          server-id: ossrh
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: GPG_PASSPHRASE
+      
+      - name: Configure Git
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+      
+      - name: Update POM version for release
+        run: |
+          mvn versions:set -DnewVersion=${{ github.event.inputs.releaseVersion }}
+          mvn versions:commit
+      
+      - name: Build and verify
+        run: mvn clean verify
+      
+      - name: Deploy to Maven Central
+        env:
+          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: mvn deploy -DskipTests
+      
+      - name: Commit release version
+        run: |
+          git add pom.xml
+          git commit -m "Release version ${{ github.event.inputs.releaseVersion }}"
+          git tag -a v${{ github.event.inputs.releaseVersion }} -m "Release version ${{ github.event.inputs.releaseVersion }}"
+      
+      - name: Update to next development version
+        run: |
+          mvn versions:set -DnewVersion=${{ github.event.inputs.nextVersion }}
+          mvn versions:commit
+          git add pom.xml
+          git commit -m "Prepare for next development iteration: ${{ github.event.inputs.nextVersion }}"
+      
+      - name: Push changes
+        run: |
+          git push origin main
+          git push origin v${{ github.event.inputs.releaseVersion }}

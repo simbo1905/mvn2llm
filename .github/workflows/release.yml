@@ -111,11 +111,13 @@ jobs:
           
           # Smoke test - verify executable runs with real artifact
           echo "Testing native executable with slf4j-api..."
-          $output = .\mvn2llm-$env:VERSION.exe org.slf4j:slf4j-api:2.0.9
+          $output = & ".\mvn2llm-$env:VERSION.exe" "org.slf4j:slf4j-api:2.0.9" 2>&1 | Out-String
+          echo "Output: $output"
           if ($output -match "The org.slf4j.Logger interface") {
             echo "Smoke test passed - found expected SLF4J documentation"
           } else {
             echo "Smoke test failed - SLF4J documentation not found"
+            echo "Full output was: $output"
             exit 1
           }
 
