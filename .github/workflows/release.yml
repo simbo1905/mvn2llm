@@ -108,6 +108,10 @@ jobs:
           
           echo "Windows native artifact: mvn2llm-$env:VERSION.exe"
           dir mvn2llm-*.exe
+          
+          # Smoke test - verify executable runs
+          echo "Testing native executable..."
+          .\mvn2llm-$env:VERSION.exe -h
 
       - name: Upload to Release
         env:
@@ -153,6 +157,10 @@ jobs:
           
           echo "macOS native artifact: mvn2llm-${VERSION}-bin"
           ls -la mvn2llm-*-bin
+          
+          # Smoke test - verify executable runs
+          echo "Testing native executable..."
+          ./mvn2llm-${VERSION}-bin -h
 
       - name: Upload to Release
         env:
@@ -206,6 +214,10 @@ jobs:
           
           echo "Linux native artifact: mvn2llm-${VERSION}-${{ matrix.arch }}-bin"
           ls -la mvn2llm-*-bin
+          
+          # Smoke test - verify executable runs
+          echo "Testing native executable..."
+          ./mvn2llm-${VERSION}-${{ matrix.arch }}-bin -h
 
       - name: Upload to Release
         env:
