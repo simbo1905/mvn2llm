@@ -15,7 +15,7 @@ from them. It prints LLM friendly output to `stdout` and logs any problems to `s
 ## Features
 
 - Downloads source JARs directly from Maven Central based on Maven coordinates e.g. `tech.kwik:kwik:0.9.1`
-- Extracts JavaDoc comments from all Java source files adn prints them to stdout in a simple test file like format.
+- Extracts JavaDoc comments from all Java source files and prints them to stdout in a simple test file like format.
 - No dependencies.
 - Compiles to a native binary that starts up fast and does not need a JVM.
 
