@@ -9,8 +9,8 @@
                                          
 ```
 
-A modern Java command line utility that downloads source JARs from Maven Central and extracts JavaDoc documentation 
-source code and the signature of the statement that it documents. The output is in the following format:
+A modern Java command line utility that downloads source JARs from Maven Central, extracts JavaDoc documentation, 
+and the signature of the statement that follows. The output is in the following format:
 
 ```
 File: net.luminis.quic.impl.QuicClientConnectionImpl
@@ -21,13 +21,14 @@ JavaDoc:
 public class QuicClientConnectionImpl extends QuicConnectionImpl implements QuicClientConnection, PacketProcessor, TlsStatusEventHandler, FrameProcessor {
 ```
 
-This is less verbose than the standard javadoc html which is the human readable equivalent. 
+This machine readable formwt is less verbose than the standard javadoc html which is the human readable equivalent. 
 The output is printed to `stdout` and problems are logged to `stderr`.
 
 ## Features
 
 - Downloads source JARs directly from Maven Central based on Maven coordinates e.g. `tech.kwik:kwik:0.9.1`
-- Extracts JavaDoc comments and a snippet of the code that follows. It print the file name, doc comment, and signature, to stdout in a simple LLM friendly format.
+- Extracts JavaDoc comments plua a snippet of the code that follows. 
+- It print the file name, javadoc comment, and signature out to stdout in a simple LLM friendly format.
 - No dependencies.
 - Compiles to a native binary that starts up fast and does not need a JVM.
 
