@@ -9,8 +9,19 @@
                                          
 ```
 
-A modern Java command line utility that downloads source JARs from Maven Central and extracts JavaDoc documentation
-from them. It prints LLM friendly output to `stdout` and logs any problems to `stderr`.
+A modern Java command line utility that downloads source JARs from Maven Central and extracts JavaDoc documentation 
+source code and a fragment of code that follows. The outputs is in the following format:
+
+```
+File: net.luminis.quic.impl.QuicClientConnectionImpl
+JavaDoc:
+/**
+ * Creates and maintains a QUIC connection with a QUIC server.
+ */
+public class QuicClientConnectionImpl extends QuicConnectionImpl implements QuicClientConnection, PacketProcessor, TlsStatusEventHandler, FrameProcessor {
+```
+
+This is less verbose than the standard html equivalent. The output is printed to `stdout` and problems are logged to `stderr`.
 
 ## Features
 
@@ -68,19 +79,6 @@ In addition to native binaries, we now provide platform-specific installers buil
 - **Linux**: `.deb` package for Debian/Ubuntu systems
 
 These installers bundle the Java runtime, so no JVM installation is required.
-
-### Output Format
-
-The tool outputs documentation in the following format:
-
-```
-File: net.luminis.quic.impl.QuicClientConnectionImpl
-JavaDoc:
-/**
- * Creates and maintains a QUIC connection with a QUIC server.
- */
-public class QuicClientConnectionImpl extends QuicConnectionImpl implements QuicClientConnection, PacketProcessor, TlsStatusEventHandler, FrameProcessor {
-```
 
 ## Limitations
 
