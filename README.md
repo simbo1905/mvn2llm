@@ -34,7 +34,7 @@ The output is printed to `stdout` and problems are logged to `stderr`.
 
 ## Requirements
 
-- Java 23 or higher
+- Java 21 or higher
 
 ## Usage
 
@@ -118,6 +118,23 @@ java -jar target/mvn2llm.jar tech.kwik:kwik:0.9.1  2.26s user 0.28s system 158% 
 ```
 
 The native image is about 5.3x faster (1.602s vs 0.301s) than the JVM version.
+
+## Distroless Container Image
+
+This repository also includes a minimal OCI image based on a custom jlink runtime and
+`gcr.io/distroless/base-debian13:nonroot`.
+
+Build it with:
+
+```bash
+docker build -t mvn2llm .
+```
+
+Run it with:
+
+```bash
+docker run --rm mvn2llm --help
+```
 
 ## License
 
