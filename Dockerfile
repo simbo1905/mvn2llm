@@ -28,4 +28,4 @@ COPY --from=build --chown=nonroot:nonroot /work /work
 COPY --from=build /opt/jre /jre
 COPY --from=build /build/mvn2llm.jar /app/mvn2llm.jar
 WORKDIR /work
-ENTRYPOINT ["/jre/bin/java","-XX:+UseContainerSupport","-XX:MaxRAMPercentage=75","-Djava.io.tmpdir=/work/tmp","-jar","/app/mvn2llm.jar"]
+ENTRYPOINT ["/jre/bin/java","-XX:MaxRAMPercentage=75","-Djava.io.tmpdir=/work/tmp","-jar","/app/mvn2llm.jar"]
