@@ -191,7 +191,7 @@ record MainArguments(
         .reduce(
             new Builder(),
             Builder::process,
-            (b1, _) -> b1
+            (b1, b2) -> b1
         )
         .toRecord();
   }
