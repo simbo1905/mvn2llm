@@ -10,9 +10,14 @@ on:
         description: 'Next development version (e.g., 2025.08.12-SNAPSHOT)'
         required: true
 
+concurrency:
+  group: maven-central-release
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:

@@ -9,9 +9,14 @@ permissions:
   contents: write
   packages: write
 
+concurrency:
+  group: release-build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   prepare-release:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     outputs:
       version: ${{ steps.get-version.outputs.version }}
     steps:
@@ -37,6 +42,7 @@ jobs:
   build-jar:
     needs: prepare-release
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK
@@ -73,6 +79,7 @@ jobs:
   build-windows:
     needs: [prepare-release, build-jar]
     runs-on: windows-latest
+    timeout-minutes: 45
     env:
       VERSION: ${{ needs.prepare-release.outputs.version }}
     steps:
@@ -131,6 +138,7 @@ jobs:
   build-macos:
     needs: [prepare-release, build-jar]
     runs-on: macos-latest
+    timeout-minutes: 45
     env:
       VERSION: ${{ needs.prepare-release.outputs.version }}
     steps:
@@ -184,6 +192,7 @@ jobs:
   build-linux:
     needs: [prepare-release, build-jar]
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     strategy:
       matrix:
         arch: [ 'amd64', 'x86-64' ]
@@ -247,6 +256,7 @@ jobs:
     needs: [prepare-release, build-jar]
     name: Build Windows jpackage
     runs-on: windows-latest
+    timeout-minutes: 30
     env:
       VERSION: ${{ needs.prepare-release.outputs.version }}
     steps:
@@ -306,6 +316,7 @@ jobs:
     needs: [prepare-release, build-jar]
     name: Build macOS jpackage
     runs-on: macos-latest
+    timeout-minutes: 30
     env:
       VERSION: ${{ needs.prepare-release.outputs.version }}
     steps:
@@ -352,6 +363,7 @@ jobs:
     needs: [prepare-release, build-jar]
     name: Build Linux jpackage
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       VERSION: ${{ needs.prepare-release.outputs.version }}
     steps:
@@ -397,6 +409,7 @@ jobs:
   generate-checksums:
     needs: [ prepare-release, build-windows, build-macos, build-linux, build-jpackage-windows, build-jpackage-macos, build-jpackage-linux ]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       VERSION: ${{ needs.prepare-release.outputs.version }}
     steps:
